@@ -1,17 +1,14 @@
 #!usr/bin/en python3
-import os
+#singularity shell /srv/nfs/ngs-stockage/NGS_Virologie/NEXTSTRAIN/nextstrainV3.simg
+#cp ~/git/MinION_HBV/Snakefile  /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR
 
-pathdata="/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/"
+#la ou sont mes datas
+workdir : "/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/"
 
-BARCODE_list=os.listdir(pathdata)
-barcode=BARCODE_list
+(BARCODE,READ) = glob_wildcards('DATASET/{barcode}/{read}.fastq') 
 
 rule merge:
     input:
-        fastq_files = pathdata+'DATASET/{barcode}/*.fastq'
-    wildcard_constraints:
-        barcode=BARCODE_list       
-    output:
-        merged_fq = pathdata+'MERGED_FQ/{barcode}_merged.fastq'    
+        fastq_files = expand('DATASET/{barcode}/{read}.fastq',zip,barcode=BARCODE,read=READ)
     shell:
-        "cat {input} > {output} "           
+        "echo 'lolz'"    
