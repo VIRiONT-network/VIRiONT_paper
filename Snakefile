@@ -1,11 +1,14 @@
 #!usr/bin/en python3
-#singularity shell /srv/nfs/ngs-stockage/NGS_Virologie/NEXTSTRAIN/nextstrainV3.simg
+#singularity shell /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/nanopore.simg
 #cp ~/git/MinION_HBV/Snakefile  /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR
+
+
 
 import os
 
 #Data repository location
 workdir : "/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/"
+
 
 #get all barcodes in a list after demultiplexing
 (BARCODE) = os.listdir('DATASET/')
@@ -18,7 +21,10 @@ for barcode in os.listdir('DATASET/'):
 #final output
 rule all:
     input:
-        merged_file = expand('MERGED/{barcode}_merged.fastq',barcode=BARCODE)
+        merged_file = expand('MERGED/{barcode}_merged.fastq',barcode=BARCODE),
+        trimmed_file = expand('TRIMMED/{barcode}_trimmed.fastq',barcode=BARCODE)
+    params:
+        trimmomatic =  "~/git/MinION_HBV/tool/Trimmomatic-0.39/trimmomatic-0.39.jar"  
 
 #concatenate all fastq files 
 rule merge:
@@ -29,4 +35,16 @@ rule merge:
     shell: 
         """
         cat DATASET/{wildcards.barcode}/* > {output}
+        """
+
+#trimming
+rule trimming:
+    input:
+        merged_fastq = rules.merge.output.merged_fastq
+    output:
+        trimmed_fastq = "TRIMMED/{barcode}_trimmed.fastq"
+   
+    shell:
+        """
+        java -jar {rules.all.params.trimmomatic} SE -phred33 {input} {output} MINLEN:500
         """

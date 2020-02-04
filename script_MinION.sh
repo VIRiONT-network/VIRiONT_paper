@@ -30,6 +30,9 @@ guppy_barcoder  -i /chemin/Guppy_basecall_output/Merge_fastq -s /chemin/Guppy_de
 #longueur de reads à éliminer e.g. <x 500 ou 1500
 Trimmomatic SE -threads 8 -phred33 merged.fastq output.fastq MINLEN:x 
 
+
+java -jar Trimmomatic-0.39/trimmomatic-0.39.jar SE -phred33 MERGED/BC01_merged.fastq HadrienR/TRIMMED/BC01_trimmed.fastq MINLEN:x 
+
 #transformation des fichier fastq à blaster en fichier fasta
 
 seqtk seq -A TxBCn.fastq>TxBCn.fasta
