@@ -22,9 +22,11 @@ for barcode in os.listdir('DATASET/'):
 rule all:
     input:
         merged_file = expand('MERGED/{barcode}_merged.fastq',barcode=BARCODE),
-        trimmed_file = expand('TRIMMED/{barcode}_trimmed.fastq',barcode=BARCODE)
+        trimmed_file = expand('TRIMMED/{barcode}_trimmed.fastq',barcode=BARCODE),
+        converted_fastq = expand("FASTA/{barcode}.fasta", barcode=BARCODE)
     params:
-        trimmomatic =  "~/git/MinION_HBV/tool/Trimmomatic-0.39/trimmomatic-0.39.jar"  
+        trimmomatic =  "~/git/MinION_HBV/tool/Trimmomatic-0.39/trimmomatic-0.39.jar" ,
+        trim_param = 500 
 
 #concatenate all fastq files 
 rule merge:
@@ -46,5 +48,16 @@ rule trimming:
    
     shell:
         """
-        java -jar {rules.all.params.trimmomatic} SE -phred33 {input} {output} MINLEN:500
+        java -jar {rules.all.params.trimmomatic} SE -phred33 {input} {output} MINLEN:{rules.all.params.trim_param}
         """
+
+rule converting:
+    input:
+        trimmed_fastq = rules.trimming.output.trimmed_fastq
+    output:
+        converted_fastq = "FASTA/{barcode}.fasta" 
+    shell:
+        """
+        seqtk seq -A {input} > {output}
+        """               
+        
