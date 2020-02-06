@@ -23,10 +23,13 @@ rule all:
     input:
         merged_file = expand('MERGED/{barcode}_merged.fastq',barcode=BARCODE),
         trimmed_file = expand('TRIMMED/{barcode}_trimmed.fastq',barcode=BARCODE),
-        converted_fastq = expand("FASTA/{barcode}.fasta", barcode=BARCODE)
+        converted_fastq = expand("FASTA/{barcode}.fasta", barcode=BARCODE),
+        R_data = expand("BLASTN/{barcode}_fmt.txt" ,barcode=BARCODE)
     params:
-        trimmomatic =  "~/git/MinION_HBV/tool/Trimmomatic-0.39/trimmomatic-0.39.jar" ,
-        trim_param = 500 
+        trimmomatic =  "TOOL/Trimmomatic-0.39/trimmomatic-0.39.jar" ,
+        trim_param = 500 ,
+        ref_HVB = "DATA/HBV_REF.fasta",
+        DB_HBV = "HBV_REF"
 
 #concatenate all fastq files 
 rule merge:
@@ -50,7 +53,7 @@ rule trimming:
         """
         java -jar {rules.all.params.trimmomatic} SE -phred33 {input} {output} MINLEN:{rules.all.params.trim_param}
         """
-
+#convert fastq into fasta
 rule converting:
     input:
         trimmed_fastq = rules.trimming.output.trimmed_fastq
@@ -60,4 +63,26 @@ rule converting:
         """
         seqtk seq -A {input} > {output}
         """               
-        
+
+#build the blast database
+rule make_db_HBV:
+    input:
+        ref_HVB = "DATA/HBV_REF.fasta"
+    output:
+        database = expand("DB/HBV_REF.{ext}", ext=["nhr", "nin", "nsq"])
+    shell:
+        """
+        makeblastdb -in {input} -out DB/HBV_REF -input_type fasta -dbtype nucl
+        """
+
+#execute blastn
+rule blastn:
+    input: 
+        fasta_file = rules.converting.output.converted_fastq,
+        database = rules.make_db_HBV.output.database
+    output:
+        R_data = "BLASTN/{barcode}_fmt.txt"
+    shell:
+        """
+        blastn -db DB/{rules.all.params.DB_HBV} -query {input.fasta_file} -outfmt 6 -out {output}
+        """                        
