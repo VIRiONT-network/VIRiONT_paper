@@ -12,6 +12,8 @@ datapath="/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/"
 
 #get all barcodes in a list after demultiplexing
 (BARCODE) = os.listdir(datapath+'DATASET/')
+#(GENOTYPE)={}
+#GENOTYPE['genotype'] =("GTA","GTB","GTC","GTD","GTE","GTF","GTG","GTH","GTI","GTJ")
 
 #make a dictionary storing key=barcode, value=reads
 list_fastq={}
@@ -24,7 +26,9 @@ rule all:
         merged_file = expand(datapath+'MERGED/{barcode}_merged.fastq',barcode=BARCODE),
         trimmed_file = expand(datapath+'TRIMMED/{barcode}_trimmed.fastq',barcode=BARCODE),
         converted_fastq = expand(datapath+"FASTA/{barcode}.fasta", barcode=BARCODE),
-        R_data = expand(datapath+"BLASTN/{barcode}_fmt.txt" ,barcode=BARCODE)
+        R_data = expand(datapath+"BLASTN/{barcode}_fmt.txt" ,barcode=BARCODE),
+        #Rresults = expand(datapath+"R_RESULT/{barcode}_list_{genotype}.txt",barcode=BARCODE,genotype=GENOTYPE['genotype'])
+        Rplot = expand(datapath+"RDATA/{barcode}_barplot.png" ,barcode=BARCODE),
     params:
         trimmomatic =  "tool/Trimmomatic-0.39/trimmomatic-0.39.jar" ,
         trim_param = 500 ,
@@ -95,3 +99,22 @@ rule blastn:
         """
         blastn -db {params.path}/DB/{rules.all.params.DB_HBV} -query {input.fasta_file} -outfmt 6 -out {output}
         """                        
+
+rule R_HBV_analysis:
+    input:
+        R_data = rules.blastn.output.R_data
+    output:
+        Rplot = datapath+"RDATA/{barcode}_barplot.png"
+    params:
+        path = datapath  
+    shell:
+        """
+
+        if [ ! -d {params.path}RDATA ];then
+            mkdir {params.path}RDATA
+	    fi
+        if [ ! -d {params.path}R_RESULT ];then
+            mkdir {params.path}R_RESULT
+	    fi
+        Rscript script/HBV_analysis.R {input} {params.path}
+        """        
