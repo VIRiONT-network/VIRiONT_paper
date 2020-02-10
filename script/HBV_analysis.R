@@ -81,61 +81,71 @@ major_geno<-as.character(hist_data[1,2])
 if (major_geno=="P3_GTA") {
   read_P3_GTA_majo<-table_result[table_result$P3_GTA==1,]
   list_fastq_GTA<-as.character(read_P3_GTA_majo$READ)
-  write(list_fastq_GTA,paste0(path,"R_RESULT/",barcode,"_list_GTA.txt"))
+  write(list_fastq_GTA,paste0(path,"R_RESULT/",barcode,"_list.txt"))
+  write(major_geno,paste0(path,"R_RESULT/",barcode,"_bestgeno.txt"))
 }
 
 if (major_geno=="P3_GTB") {
   read_P3_GTB_majo<-table_result[table_result$P3_GTB==1,]
   list_fastq_GTB<-as.character(read_P3_GTB_majo$READ)
-  write(list_fastq_GTB,paste0(path,"R_RESULT/",barcode,"_list_GTB.txt"))
+  write(list_fastq_GTB,paste0(path,"R_RESULT/",barcode,"_list.txt"))
+  write(major_geno,paste0(path,"R_RESULT/",barcode,"_bestgeno.txt"))
 }
 
 if (major_geno=="P3_GTC") {
   read_P3_GTC_majo<-table_result[table_result$P3_GTC==1,]
   list_fastq_GTC<-as.character(read_P3_GTC_majo$READ)
-  write(list_fastq_GTC,paste0(path,"R_RESULT/",barcode,"_list_GTC.txt"))
+  write(list_fastq_GTC,paste0(path,"R_RESULT/",barcode,"_list.txt"))
+  write(major_geno,paste0(path,"R_RESULT/",barcode,"_bestgeno.txt"))
 }
 
 if (major_geno=="P3_GTD") {
   read_P3_GTD_majo<-table_result[table_result$P3_GTD==1,]
   list_fastq_GTD<-as.character(read_P3_GTD_majo$READ)
-  write(list_fastq_GTD,paste0(path,"R_RESULT/",barcode,"_list_GTD.txt"))
+  write(list_fastq_GTD,paste0(path,"R_RESULT/",barcode,"_list.txt"))
+  write(major_geno,paste0(path,"R_RESULT/",barcode,"_bestgeno.txt"))
 }
 
 if (major_geno=="P3_GTE") {
   read_P3_GTE_majo<-table_result[table_result$P3_GTE==1,]
   list_fastq_GTE<-as.character(read_P3_GTE_majo$READ)
-  write(list_fastq_GTE,paste0(path,"R_RESULT/",barcode,"_list_GTE.txt"))
+  write(list_fastq_GTE,paste0(path,"R_RESULT/",barcode,"_list.txt"))
+  write(major_geno,paste0(path,"R_RESULT/",barcode,"_bestgeno.txt"))
 }
 
 if (major_geno=="P3_GTF") {
   read_P3_GTF_majo<-table_result[table_result$P3_GTF==1,]
   list_fastq_GTF<-as.character(read_P3_GTF_majo$READ)
-  write(list_fastq_GTF,paste0(path,"R_RESULT/",barcode,"_list_GTF.txt"))
+  write(list_fastq_GTF,paste0(path,"R_RESULT/",barcode,"_list.txt"))
+  write(major_geno,paste0(path,"R_RESULT/",barcode,"_bestgeno.txt"))
 }
 
 if (major_geno=="P3_GTG") {
   read_P3_GTG_majo<-table_result[table_result$P3_GTG==1,]
   list_fastq_GTG<-as.character(read_P3_GTG_majo$READ)
-  write(list_fastq_GTG,paste0(path,"R_RESULT/",barcode,"_list_GTG.txt"))
+  write(list_fastq_GTG,paste0(path,"R_RESULT/",barcode,"_list.txt"))
+  write(major_geno,paste0(path,"R_RESULT/",barcode,"_bestgeno.txt"))
 }
 
 if (major_geno=="P3_GTH") {
   read_P3_GTH_majo<-table_result[table_result$P3_GTH==1,]
   list_fastq_GTH<-as.character(read_P3_GTH_majo$READ)
-  write(list_fastq_GTH,paste0(path,"R_RESULT/",barcode,"_list_GTH.txt"))
+  write(list_fastq_GTH,paste0(path,"R_RESULT/",barcode,"_list.txt"))
+  write(major_geno,paste0(path,"R_RESULT/",barcode,"_bestgeno.txt"))
 }
 
 if (major_geno=="P3_GTI") {
   read_P3_GTI_majo<-table_result[table_result$P3_GTI==1,]
   list_fastq_GTI<-as.character(read_P3_GTI_majo$READ)
-  write(list_fastq_GTI,paste0(path,"R_RESULT/",barcode,"_list_GTI.txt"))
+  write(list_fastq_GTI,paste0(path,"R_RESULT/",barcode,"_list.txt"))
+  write(major_geno,paste0(path,"R_RESULT/",barcode,"_bestgeno.txt"))
 }
 
 if (major_geno=="P3_GTJ") {
   read_P3_GTJ_majo<-table_result[table_result$P3_GTJ==1,]
   list_fastq_GTJ<-as.character(read_P3_GTJ_majo$READ)
-  write(list_fastq_GTJ,paste0(path,"R_RESULT/",barcode,"_list_GTH.txt"))
+  write(list_fastq_GTJ,paste0(path,"R_RESULT/",barcode,"_list.txt"))
+  write(major_geno,paste0(path,"R_RESULT/",barcode,"_bestgeno.txt"))
 }
 
 save.image(paste0(path,"RDATA/",barcode,"_rsave.RData"))
