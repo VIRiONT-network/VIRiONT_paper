@@ -23,11 +23,13 @@ rule all:
         trimmed_file = expand(resultpath+'TRIMMED/{barcode}_trimmed.fastq',barcode=BARCODE),
         converted_fastq = expand(resultpath+"FASTA/{barcode}.fasta", barcode=BARCODE),
         R_data = expand(resultpath+"BLASTN/{barcode}_fmt.txt" ,barcode=BARCODE),
-        #Rresults = expand(datapath+"R_RESULT/{barcode}_list_{genotype}.txt",barcode=BARCODE,genotype=GENOTYPE['genotype'])
-        Rplot = expand(resultpath+"RDATA/{barcode}_barplot.png" ,barcode=BARCODE),
+        read_list = expand(resultpath+"R_RESULT/{barcode}_list.txt",barcode=BARCODE),
+        merged_filtered = expand(resultpath+"FILTER/{barcode}_bestgeno.fastq",barcode=BARCODE), 
+
     params:
         trimmomatic =  "tool/Trimmomatic-0.39/trimmomatic-0.39.jar" ,
         trim_param = 500 ,
+        seqkit = "tool/seqkit/seqkit",
         ref_HVB = "DATA/HBV_REF.fasta",
         DB_HBV = "HBV_REF"
 
@@ -100,7 +102,8 @@ rule R_HBV_analysis:
     input:
         R_data = rules.blastn.output.R_data
     output:
-        Rplot = resultpath+"RDATA/{barcode}_barplot.png"
+        read_list = resultpath+"R_RESULT/{barcode}_list.txt",
+        best_geno = resultpath+"R_RESULT/{barcode}_bestgeno.txt"
     params:
         path = resultpath
     shell:
@@ -114,3 +117,15 @@ rule R_HBV_analysis:
 	    fi
         Rscript script/HBV_analysis.R {input} {params.path}
         """        
+
+rule extract_read_from_merge:
+    input:
+        read_list = rules.R_HBV_analysis.output.read_list,
+        #best_geno = rules.R_HBV_analysis.output.best_geno
+        trim_fastq = rules.trimming.output.trimmed_fastq
+    output:
+        merged_filtered = resultpath+"FILTER/{barcode}_bestgeno.fastq" 
+    shell:
+        """
+        {rules.all.params.seqkit} grep --pattern-file {input.read_list} {input.trim_fastq} > {output}
+        """              
