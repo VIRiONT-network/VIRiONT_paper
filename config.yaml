@@ -1,4 +1,4 @@
-
+#This file have to be checked before each run!!!
 
 #Define here the data repository
 PathToData : "/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/DATASET/"
