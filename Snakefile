@@ -29,6 +29,7 @@ rule all:
         sorted_bam =  expand(resultpath+"BAM/{barcode}_spliced_sorted.bam" ,barcode=BARCODE), 
         depth_file = expand(resultpath+"DEPTH/{barcode}_spliced_sorted_indexed.depth"  ,barcode=BARCODE), 
         vcf = expand(resultpath+"VCF/{barcode}_varcall"  ,barcode=BARCODE),
+        fasta_cons = expand(resultpath+"FINAL_OUTPUT/{barcode}_cons.fasta",barcode=BARCODE),
 
     params:
         trimmomatic =  "tool/Trimmomatic-0.39/trimmomatic-0.39.jar" ,
@@ -142,7 +143,7 @@ rule alignemnt_splice:
     shell:
         """
         bestgeno=`cat {input.best_geno}`
-        {rules.all.params.minimap} -ax splice ref/${{bestgeno}}.fa {input.merged_filtered} > {output.spliced_data}
+        {rules.all.params.minimap} -ax splice ref/${{bestgeno}}.fa {input.merged_filtered} > {output.spliced_bam}
         """              
 
 rule bam_sorting:
@@ -179,3 +180,13 @@ rule bam_mpileup:
         pathref=`echo "ref/$bestgeno.fa"`
         samtools mpileup -d 200000 -f $pathref {input.sorted_bam} > {output}
         """             
+
+rule script_varcaller:
+    input:
+        vcf = rules.bam_mpileup.output.vcf
+    output:
+        fasta_cons = resultpath+"FINAL_OUTPUT/{barcode}_cons.fasta"
+    shell:
+        """
+        perl script/pathogen_varcaller_MINION.PL {input} 0.5 {output}
+        """                
