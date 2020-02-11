@@ -25,11 +25,16 @@ rule all:
         R_data = expand(resultpath+"BLASTN/{barcode}_fmt.txt" ,barcode=BARCODE),
         read_list = expand(resultpath+"R_RESULT/{barcode}_list.txt",barcode=BARCODE),
         merged_filtered = expand(resultpath+"FILTER/{barcode}_bestgeno.fastq",barcode=BARCODE), 
+        spliced_data = expand(resultpath+"BAM/{barcode}_spliced.bam" ,barcode=BARCODE),
+        sorted_bam =  expand(resultpath+"BAM/{barcode}_spliced_sorted.bam" ,barcode=BARCODE), 
+        depth_file = expand(resultpath+"DEPTH/{barcode}_spliced_sorted_indexed.depth"  ,barcode=BARCODE), 
+        vcf = expand(resultpath+"VCF/{barcode}_varcall"  ,barcode=BARCODE),
 
     params:
         trimmomatic =  "tool/Trimmomatic-0.39/trimmomatic-0.39.jar" ,
         trim_param = 500 ,
         seqkit = "tool/seqkit/seqkit",
+        minimap = "tool/minimap2/minimap2",
         ref_HVB = "DATA/HBV_REF.fasta",
         DB_HBV = "HBV_REF"
 
@@ -121,7 +126,6 @@ rule R_HBV_analysis:
 rule extract_read_from_merge:
     input:
         read_list = rules.R_HBV_analysis.output.read_list,
-        #best_geno = rules.R_HBV_analysis.output.best_geno
         trim_fastq = rules.trimming.output.trimmed_fastq
     output:
         merged_filtered = resultpath+"FILTER/{barcode}_bestgeno.fastq" 
@@ -129,3 +133,49 @@ rule extract_read_from_merge:
         """
         {rules.all.params.seqkit} grep --pattern-file {input.read_list} {input.trim_fastq} > {output}
         """              
+rule alignemnt_splice:
+    input:   
+        best_geno = rules.R_HBV_analysis.output.best_geno ,
+        merged_filtered = rules.extract_read_from_merge.output.merged_filtered
+    output:
+        spliced_bam = resultpath+"BAM/{barcode}_spliced.bam"  
+    shell:
+        """
+        bestgeno=`cat {input.best_geno}`
+        {rules.all.params.minimap} -ax splice ref/${{bestgeno}}.fa {input.merged_filtered} > {output.spliced_data}
+        """              
+
+rule bam_sorting:
+    input:
+        spliced_bam = rules.alignemnt_splice.output.spliced_bam
+    output:
+        sorted_bam =  resultpath+"BAM/{barcode}_spliced_sorted.bam"     
+    shell:
+        """
+        samtools sort {input} > {output}
+        """  
+
+rule bam_indexing:
+    input:
+        sorted_bam = rules.bam_sorting.output.sorted_bam
+    output:
+        depth_file = resultpath+"DEPTH/{barcode}_spliced_sorted_indexed.depth"   
+    shell:
+        """
+        samtools index {input}
+        samtools depth -m 200000 {input} > {output}
+        """                  
+
+rule bam_mpileup:
+    input:
+        sorted_bam = rules.bam_sorting.output.sorted_bam   ,
+        best_geno = rules.R_HBV_analysis.output.best_geno ,
+        depth_file = rules.bam_indexing.output.depth_file
+    output:
+        vcf = resultpath+"VCF/{barcode}_varcall"
+    shell:
+        """
+        bestgeno=`cat {input.best_geno}`
+        pathref=`echo "ref/$bestgeno.fa"`
+        samtools mpileup -d 200000 -f $pathref {input.sorted_bam} > {output}
+        """             
