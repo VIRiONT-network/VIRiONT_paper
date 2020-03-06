@@ -33,7 +33,7 @@ rule all:
 
     params:
         trimmomatic =  "tool/Trimmomatic-0.39/trimmomatic-0.39.jar" ,
-        trim_param = 500 ,
+        trim_param = config['TrimmParam'] ,
         seqkit = "tool/seqkit/seqkit",
         minimap = "tool/minimap2/minimap2",
         ref_HVB = "DATA/HBV_REF.fasta",
