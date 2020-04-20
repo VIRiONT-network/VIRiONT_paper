@@ -23,7 +23,9 @@ rule all:
         trimmed_file = expand(resultpath+'TRIMMED/{barcode}_trimmed.fastq',barcode=BARCODE),
         converted_fastq = expand(resultpath+"FASTA/{barcode}.fasta", barcode=BARCODE),
         R_data = expand(resultpath+"BLASTN/{barcode}_fmt.txt" ,barcode=BARCODE),
-        #read_list = expand(resultpath+"R_RESULT/{barcode}_list.txt",barcode=BARCODE),
+        R_data_subtype = expand(resultpath+"BLASTN/{barcode}_sub.txt" ,barcode=BARCODE),
+        plot_subtype = expand(resultpath+"R_SUB/{barcode}_subtype_barplot.png",barcode=BARCODE),
+        read_list = expand(resultpath+"R_RESULT/{barcode}_list.txt",barcode=BARCODE),
         #merged_filtered = expand(resultpath+"FILTER/{barcode}_bestgeno.fastq",barcode=BARCODE), 
         #spliced_data = expand(resultpath+"BAM/{barcode}_spliced.bam" ,barcode=BARCODE),
         #sorted_bam =  expand(resultpath+"BAM/{barcode}_spliced_sorted.bam" ,barcode=BARCODE), 
@@ -96,25 +98,35 @@ rule make_db_HBV:
         """
 
 #execute blastn
-rule blastn:
+rule blastn_geno:
     input: 
         fasta_file = rules.converting.output.converted_fastq,
         database = rules.make_db_HBV.output.database ,
-        database_subtype = rules.make_db_HBV.output.database_subtype
     output:
         R_data = resultpath+"BLASTN/{barcode}_fmt.txt" ,
-        R_data_subtype = resultpath+"BLASTN/{barcode}_sub.txt"
     params:
         path = resultpath        
     shell:
         """
         blastn -db {params.path}/DB/{rules.all.params.DB_HBV} -query {input.fasta_file} -outfmt 6 -out {output.R_data}
-        blastn -db {params.path}/DB/{rules.all.params.DB_HBV_SUB} -query {input.fasta_file} -outfmt 6 -out {output.R_data_subtype}
         """                        
+
+rule blastn_subtype:
+    input: 
+        fasta_file = rules.converting.output.converted_fastq,
+        database_subtype = rules.make_db_HBV.output.database_subtype
+    output:
+        R_data_subtype = resultpath+"BLASTN/{barcode}_sub.txt"
+    params:
+        path = resultpath        
+    shell:
+        """
+        blastn -db {params.path}/DB/{rules.all.params.DB_HBV_SUB} -query {input.fasta_file} -outfmt 6 -out {output.R_data_subtype}
+        """  
 
 rule R_HBV_analysis:
     input:
-        R_data = rules.blastn.output.R_data
+        R_data = rules.blastn_geno.output.R_data
     output:
         read_list = resultpath+"R_RESULT/{barcode}_list.txt",
         best_geno = resultpath+"R_RESULT/{barcode}_bestgeno.txt"
@@ -124,13 +136,25 @@ rule R_HBV_analysis:
         """
 
         if [ ! -d {params.path}RDATA ];then
-            mkdir {params.path}RDATA
+            mkdir -p {params.path}RDATA
 	    fi
         if [ ! -d {params.path}R_RESULT ];then
-            mkdir {params.path}R_RESULT
+            mkdir -p {params.path}R_RESULT
 	    fi
         Rscript script/HBV_analysis.R {input} {params.path}
         """        
+
+rule R_HBV_subtype_analysis:
+    input:
+        R_data = rules.blastn_subtype.output.R_data_subtype
+    output:
+        plot_subtype = resultpath+"R_SUB/{barcode}_subtype_barplot.png"
+    params:
+        path = resultpath
+    shell:
+        """
+        Rscript script/HBV_subtype_analysis.R {input} {output}
+        """    
 
 rule extract_read_from_merge:
     input:
