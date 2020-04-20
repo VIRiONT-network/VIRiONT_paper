@@ -23,13 +23,13 @@ rule all:
         trimmed_file = expand(resultpath+'TRIMMED/{barcode}_trimmed.fastq',barcode=BARCODE),
         converted_fastq = expand(resultpath+"FASTA/{barcode}.fasta", barcode=BARCODE),
         R_data = expand(resultpath+"BLASTN/{barcode}_fmt.txt" ,barcode=BARCODE),
-        read_list = expand(resultpath+"R_RESULT/{barcode}_list.txt",barcode=BARCODE),
-        merged_filtered = expand(resultpath+"FILTER/{barcode}_bestgeno.fastq",barcode=BARCODE), 
-        spliced_data = expand(resultpath+"BAM/{barcode}_spliced.bam" ,barcode=BARCODE),
-        sorted_bam =  expand(resultpath+"BAM/{barcode}_spliced_sorted.bam" ,barcode=BARCODE), 
-        depth_file = expand(resultpath+"DEPTH/{barcode}_spliced_sorted_indexed.depth"  ,barcode=BARCODE), 
-        vcf = expand(resultpath+"VCF/{barcode}_varcall"  ,barcode=BARCODE),
-        fasta_cons = expand(resultpath+"FINAL_OUTPUT/{barcode}_cons.fasta",barcode=BARCODE),
+        #read_list = expand(resultpath+"R_RESULT/{barcode}_list.txt",barcode=BARCODE),
+        #merged_filtered = expand(resultpath+"FILTER/{barcode}_bestgeno.fastq",barcode=BARCODE), 
+        #spliced_data = expand(resultpath+"BAM/{barcode}_spliced.bam" ,barcode=BARCODE),
+        #sorted_bam =  expand(resultpath+"BAM/{barcode}_spliced_sorted.bam" ,barcode=BARCODE), 
+        #depth_file = expand(resultpath+"DEPTH/{barcode}_spliced_sorted_indexed.depth"  ,barcode=BARCODE), 
+        #vcf = expand(resultpath+"VCF/{barcode}_varcall"  ,barcode=BARCODE),
+        #fasta_cons = expand(resultpath+"FINAL_OUTPUT/{barcode}_cons.fasta",barcode=BARCODE),
 
     params:
         trimmomatic =  "tool/Trimmomatic-0.39/trimmomatic-0.39.jar" ,
@@ -37,14 +37,15 @@ rule all:
         seqkit = "tool/seqkit/seqkit",
         minimap = "tool/minimap2/minimap2",
         ref_HVB = "DATA/HBV_REF.fasta",
-        DB_HBV = "HBV_REF"
+        DB_HBV = "HBV_REF" ,
+        DB_HBV_SUB = "HBV_SUB"
 
 
 
 #concatenate all fastq files 
 rule merge:
     input: 
-        lambda wildcards: expand(datapath+"{barcode}/{read}", read=list_fastq[wildcards.barcode],barcode=BARCODE)
+        lambda wildcards: expand(datapath+"{barcode}", barcode=BARCODE)
     output: 
         merged_fastq = resultpath+"MERGED/{barcode}_merged.fastq"  
     params:
@@ -80,28 +81,35 @@ rule converting:
 #build the blast database
 rule make_db_HBV:
     input:
-        ref_HVB = "ref/HBV_REF.fasta"
+        ref_HBV = "ref/HBV_REF.fasta" ,
+        ref_subtype_HBV = "ref/HBV_subtype.fasta"
     output:
-        database = expand(resultpath+"DB/HBV_REF.{ext}", ext=["nhr", "nin", "nsq"])
+        database = expand(resultpath+"DB/HBV_REF.{ext}", ext=["nhr", "nin", "nsq"]) ,
+        database_subtype = expand(resultpath+"DB/HBV_SUB.{ext}", ext=["nhr", "nin", "nsq"])
+
     params:
         path = resultpath         
     shell:
         """
-        makeblastdb -in {input} -out {params.path}/DB/HBV_REF -input_type fasta -dbtype nucl
+        makeblastdb -in {input.ref_HBV} -out {params.path}/DB/HBV_REF -input_type fasta -dbtype nucl
+        makeblastdb -in {input.ref_subtype_HBV} -out {params.path}/DB/HBV_SUB -input_type fasta -dbtype nucl
         """
 
 #execute blastn
 rule blastn:
     input: 
         fasta_file = rules.converting.output.converted_fastq,
-        database = rules.make_db_HBV.output.database
+        database = rules.make_db_HBV.output.database ,
+        database_subtype = rules.make_db_HBV.output.database_subtype
     output:
-        R_data = resultpath+"BLASTN/{barcode}_fmt.txt"
+        R_data = resultpath+"BLASTN/{barcode}_fmt.txt" ,
+        R_data_subtype = resultpath+"BLASTN/{barcode}_sub.txt"
     params:
         path = resultpath        
     shell:
         """
-        blastn -db {params.path}/DB/{rules.all.params.DB_HBV} -query {input.fasta_file} -outfmt 6 -out {output}
+        blastn -db {params.path}/DB/{rules.all.params.DB_HBV} -query {input.fasta_file} -outfmt 6 -out {output.R_data}
+        blastn -db {params.path}/DB/{rules.all.params.DB_HBV_SUB} -query {input.fasta_file} -outfmt 6 -out {output.R_data_subtype}
         """                        
 
 rule R_HBV_analysis:
@@ -174,11 +182,13 @@ rule bam_mpileup:
         depth_file = rules.bam_indexing.output.depth_file
     output:
         vcf = resultpath+"VCF/{barcode}_varcall"
+    threads:6
+    resources: mem_gb= 22    
     shell:
         """
         bestgeno=`cat {input.best_geno}`
         pathref=`echo "ref/$bestgeno.fa"`
-        samtools mpileup -d 200000 -f $pathref {input.sorted_bam} > {output}
+        samtools mpileup -d 20000 -f $pathref {input.sorted_bam} -Q 7 > {output}
         """             
 
 rule script_varcaller:
@@ -188,5 +198,5 @@ rule script_varcaller:
         fasta_cons = resultpath+"FINAL_OUTPUT/{barcode}_cons.fasta"
     shell:
         """
-        perl script/pathogen_varcaller_MINION.PL {input} 0.5 {output}
+        perl script/pathogen_varcaller_MINION.PL {input} 0.5 {output} 
         """                
