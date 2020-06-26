@@ -20,6 +20,7 @@ def read_fasta(file):
 
 fasta_list=read_fasta(ref_fasta_file) 
  
+
 for header,sequence in fasta_list.items():
     filename=output_dir+header[1:].strip()+".fasta"
     fasta_file=open(filename,'w')

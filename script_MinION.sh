@@ -39,7 +39,8 @@ thread_number=8 #Define number of threads to use for the analysis
 snakemake -s viralION.py \
     --core $thread_number \
     --config PathToData=$data_loc \
-             PathToResult=$result_loc 
+             PathToResult=$result_loc \
+             PathToReference=$ref_loc
          
 
 script/split_reference.py "ref/HBV_REF.fasta" "/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/REFSEQ/"      

@@ -6,5 +6,8 @@ PathToData : "/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/DATASET/"
 #Define here the data repository. Snakemake will create result files here
 PathToResult : "/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/RESULTS/"
 
+#Indicate fasta file containing reference for all genotype
+PathToReference : "ref/HBV_REF.fasta"
+
 #Params tools
 TrimmParam : 500

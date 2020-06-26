@@ -6,6 +6,7 @@ configfile : "config.yaml"
 
 datapath=config['PathToData']
 resultpath=config['PathToResult']
+refpath=config['PathToReference']
 
 #get all barcodes in a list after demultiplexing
 barcode_list = glob.glob(datapath+"barcode*")
@@ -20,7 +21,7 @@ rule all:
         merged_file = expand(resultpath+'MERGED/{barcode}_merged.fastq',barcode=BARCODE),
         trimmed_file = expand(resultpath+'TRIMMED/{barcode}_trimmed.fastq',barcode=BARCODE),
         converted_fastq = expand(resultpath+"FASTA/{barcode}.fasta", barcode=BARCODE),
-
+        ref_rep=resultpath+"REFSEQ/",
 
 #concatenate all fastq files 
 rule merge:
@@ -61,3 +62,13 @@ rule converting:
         """
         seqtk seq -A {input} > {output}
         """    
+
+rule split_reference:
+    message:
+        "Spliting reference for isolate each genotype sequence."
+    input:
+        ref_file= refpath
+    output:
+        ref_rep=resultpath+"REFSEQ/"
+    shell:
+        "script/split_reference.py {input} {output} "
