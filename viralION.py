@@ -19,12 +19,13 @@ rule all:
     input:
         merged_file = expand(resultpath+'MERGED/{barcode}_merged.fastq',barcode=BARCODE),
         trimmed_file = expand(resultpath+'TRIMMED/{barcode}_trimmed.fastq',barcode=BARCODE),
+        converted_fastq = expand(resultpath+"FASTA/{barcode}.fasta", barcode=BARCODE),
 
 
-# message:"Merging fastq: {barcode}/*.fastq ==> MERGED/{barcode}_merged.fastq "
-       
 #concatenate all fastq files 
 rule merge:
+    message:
+        "Merging fastq: {barcode}/*.fastq ==> MERGED/{barcode}_merged.fastq "
     input: 
         lambda wildcards: expand(resultpath+"{barcode}", barcode=BARCODE)
     output: 
@@ -38,6 +39,8 @@ rule merge:
 
 #trimming
 rule trimming:
+    message:
+        "Filtering fastq using NanoFilt."
     input:
         merged_fastq = rules.merge.output.merged_fastq
     output:
@@ -45,3 +48,16 @@ rule trimming:
    
     shell:
         "NanoFilt --quality 10 --length 100 --maxlength 1500 {input} > {output} "
+
+#convert fastq into fasta
+rule converting:
+    message:
+        "Converting {barcode}_trimmed.fastq ==> {barcode}.fasta using seqkt"
+    input:
+        trimmed_fastq = rules.trimming.output.trimmed_fastq
+    output:
+        converted_fastq = resultpath+"FASTA/{barcode}.fasta" 
+    shell:
+        """
+        seqtk seq -A {input} > {output}
+        """    
