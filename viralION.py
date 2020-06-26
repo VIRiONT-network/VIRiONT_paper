@@ -8,6 +8,12 @@ datapath=config['PathToData']
 resultpath=config['PathToResult']
 refpath=config['PathToReference']
 
+#get database name
+filename=os.path.basename(refpath)
+list_split=filename.split(".")
+database_name=list_split[0]
+
+
 #get all barcodes in a list after demultiplexing
 barcode_list = glob.glob(datapath+"barcode*")
 BARCODE=[]
@@ -22,6 +28,9 @@ rule all:
         trimmed_file = expand(resultpath+'TRIMMED/{barcode}_trimmed.fastq',barcode=BARCODE),
         converted_fastq = expand(resultpath+"FASTA/{barcode}.fasta", barcode=BARCODE),
         ref_rep=resultpath+"REFSEQ/",
+        database = expand(resultpath+"DB/"+database_name+".{ext}", ext=["nhr", "nin", "nsq"]),
+        R_data = expand(resultpath+"BLASTN_RESULT/{barcode}_fmt.txt" ,barcode=BARCODE),
+
 
 #concatenate all fastq files 
 rule merge:
@@ -63,6 +72,7 @@ rule converting:
         seqtk seq -A {input} > {output}
         """    
 
+#Separate each fasta from ref into each unique fasta sequence.
 rule split_reference:
     message:
         "Spliting reference for isolate each genotype sequence."
@@ -72,3 +82,34 @@ rule split_reference:
         ref_rep=resultpath+"REFSEQ/"
     shell:
         "script/split_reference.py {input} {output} "
+
+#build the blast database
+rule make_db_HBV:
+    message:
+        "build blast database from reference using blastn."
+    input:
+        ref_fasta_file = refpath 
+    output:
+        database = expand(resultpath+"DB/"+database_name+".{ext}", ext=["nhr", "nin", "nsq"])
+    params:
+        database_path = resultpath+"DB/"+database_name        
+    shell:
+        """
+        makeblastdb -in {input.ref_fasta_file} -out {params.database_path} -input_type fasta -dbtype nucl
+        """
+
+#execute blastn
+rule blastn_geno:
+    message:
+        "Blasting {barcode}.fasta on the custom database."
+    input: 
+        fasta_file = rules.converting.output.converted_fastq,
+        database = rules.make_db_HBV.output.database ,
+    output:
+        R_data = resultpath+"BLASTN_RESULT/{barcode}_fmt.txt" ,
+    params:
+        database_path = resultpath+"DB/"+database_name         
+    shell:
+        """
+        blastn -db {params.database_path} -query {input.fasta_file} -outfmt 6 -out {output.R_data}
+        """   
