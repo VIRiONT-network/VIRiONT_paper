@@ -7,6 +7,8 @@ configfile : "config.yaml"
 datapath=config['PathToData']
 resultpath=config['PathToResult']
 refpath=config['PathToReference']
+analysis=config['AnalysisName']
+analysis_table=config['AnalysisTable']
 
 #get database name
 filename=os.path.basename(refpath)
@@ -30,6 +32,8 @@ rule all:
         ref_rep=resultpath+"REFSEQ/",
         database = expand(resultpath+"DB/"+database_name+".{ext}", ext=["nhr", "nin", "nsq"]),
         R_data = expand(resultpath+"BLASTN_RESULT/{barcode}_fmt.txt" ,barcode=BARCODE),
+        best_ref = expand(resultpath+"BLASTN_ANALYSIS/{barcode}_bestref.txt",barcode=BARCODE),
+
 
 
 #concatenate all fastq files 
@@ -37,7 +41,7 @@ rule merge:
     message:
         "Merging fastq: {barcode}/*.fastq ==> MERGED/{barcode}_merged.fastq "
     input: 
-        lambda wildcards: expand(resultpath+"{barcode}", barcode=BARCODE)
+        lambda wildcards: expand(datapath+"{barcode}", barcode=BARCODE)
     output: 
         merged_fastq = resultpath+"MERGED/{barcode}_merged.fastq"  
     params:
@@ -99,7 +103,7 @@ rule make_db_HBV:
         """
 
 #execute blastn
-rule blastn_geno:
+rule blastn_ref:
     message:
         "Blasting {barcode}.fasta on the custom database."
     input: 
@@ -113,3 +117,20 @@ rule blastn_geno:
         """
         blastn -db {params.database_path} -query {input.fasta_file} -outfmt 6 -out {output.R_data}
         """   
+
+rule blastn_analysis:
+    input:
+        R_data = rules.blastn_ref.output.R_data ,
+        AnalTable = analysis_table ,
+    output:
+        read_list = resultpath+"BLASTN_ANALYSIS/{barcode}_read-list.txt",
+        best_ref = resultpath+"BLASTN_ANALYSIS/{barcode}_bestref.txt",
+        ref_count_plot = resultpath+"BLASTN_ANALYSIS/{barcode}_barplot.png"
+    params:
+        anal=analysis
+    shell:
+        """
+        Rscript script/Blastn_analysis.R {input.R_data} \
+            {input.AnalTable} {params.anal} \
+            {output.read_list} {output.best_ref} {output.ref_count_plot}
+        """  
