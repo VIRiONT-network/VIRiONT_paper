@@ -33,6 +33,10 @@ rule all:
         database = expand(resultpath+"DB/"+database_name+".{ext}", ext=["nhr", "nin", "nsq"]),
         R_data = expand(resultpath+"BLASTN_RESULT/{barcode}_fmt.txt" ,barcode=BARCODE),
         best_ref = expand(resultpath+"BLASTN_ANALYSIS/{barcode}_bestref.txt",barcode=BARCODE),
+        merged_filtered = expand(resultpath+"FILTERED/{barcode}_bestref.fastq" ,barcode=BARCODE),
+        spliced_bam = expand(resultpath+"BAM/{barcode}_spliced.bam"  ,barcode=BARCODE),
+
+
 
 
 
@@ -88,7 +92,7 @@ rule split_reference:
         "script/split_reference.py {input} {output} "
 
 #build the blast database
-rule make_db_HBV:
+rule make_db:
     message:
         "build blast database from reference using blastn."
     input:
@@ -108,7 +112,7 @@ rule blastn_ref:
         "Blasting {barcode}.fasta on the custom database."
     input: 
         fasta_file = rules.converting.output.converted_fastq,
-        database = rules.make_db_HBV.output.database ,
+        database = rules.make_db.output.database ,
     output:
         R_data = resultpath+"BLASTN_RESULT/{barcode}_fmt.txt" ,
     params:
@@ -119,6 +123,8 @@ rule blastn_ref:
         """   
 
 rule blastn_analysis:
+    message:
+        "computing the majoritary reference using R."
     input:
         R_data = rules.blastn_ref.output.R_data ,
         AnalTable = analysis_table ,
@@ -133,4 +139,34 @@ rule blastn_analysis:
         Rscript script/Blastn_analysis.R {input.R_data} \
             {input.AnalTable} {params.anal} \
             {output.read_list} {output.best_ref} {output.ref_count_plot}
+        """  
+
+rule extract_read_from_merge:
+    message:
+        "filtrate read from majoritary reference using seqkit."
+    input:
+        read_list = rules.blastn_analysis.output.read_list,
+        trim_fastq = rules.trimming.output.trimmed_fastq
+    output:
+        merged_filtered = resultpath+"FILTERED/{barcode}_bestref.fastq" 
+    shell:
+        """
+        seqkit grep --pattern-file {input.read_list} {input.trim_fastq} > {output}
+        """           
+
+rule alignemnt:
+    message:
+        "alignment on the majoritary reference using minimap2."
+    input:   
+        best_ref = rules.blastn_analysis.output.best_ref ,
+        merged_filtered = rules.extract_read_from_merge.output.merged_filtered ,
+        split_ref_path = rules.split_reference.output.ref_rep ,
+    output:
+        spliced_bam = resultpath+"BAM/{barcode}_spliced.bam" 
+    params:
+        pathref= resultpath         
+    shell:
+        """
+        bestref=`cat {input.best_ref}`
+        minimap2 -ax splice {input.split_ref_path}${{bestref}}.fasta {input.merged_filtered} > {output.spliced_bam}
         """  
