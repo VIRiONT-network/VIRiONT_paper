@@ -1,0 +1,23 @@
+name: samtools
+channels:
+  - bioconda
+  - defaults
+dependencies:
+  - _libgcc_mutex=0.1=main
+  - bzip2=1.0.8=h7b6447c_0
+  - ca-certificates=2020.6.24=0
+  - curl=7.71.0=hbc83047_0
+  - krb5=1.18.2=h173b8e3_0
+  - libcurl=7.71.0=h20c2e04_0
+  - libedit=3.1.20191231=h7b6447c_0
+  - libgcc=7.2.0=h69d50b8_2
+  - libgcc-ng=9.1.0=hdf63c60_0
+  - libssh2=1.9.0=h1ba5d50_1
+  - libstdcxx-ng=9.1.0=hdf63c60_0
+  - ncurses=6.2=he6710b0_1
+  - openssl=1.1.1g=h7b6447c_0
+  - samtools=1.7=1
+  - xz=5.2.5=h7b6447c_0
+  - zlib=1.2.11=h7b6447c_3
+prefix: /home/chu-lyon.fr/regueex/anaconda3/envs/samtools
+
