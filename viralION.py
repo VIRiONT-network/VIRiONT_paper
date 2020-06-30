@@ -66,7 +66,8 @@ rule trimming:
         merged_fastq = rules.merge.output.merged_fastq
     output:
         trimmed_fastq = resultpath+"TRIMMED/{barcode}_trimmed.fastq"
-   
+    conda:
+        "env/nanofilt.yaml"
     shell:
         "NanoFilt --quality 10 --length 100 --maxlength 1500 {input} > {output} "
 
@@ -78,6 +79,8 @@ rule converting:
         trimmed_fastq = rules.trimming.output.trimmed_fastq
     output:
         converted_fastq = resultpath+"FASTA/{barcode}.fasta" 
+    conda:
+        "env/seqtk.yaml"        
     shell:
         """
         seqtk seq -A {input} > {output}
@@ -103,7 +106,9 @@ rule make_db:
     output:
         database = expand(resultpath+"DB/"+database_name+".{ext}", ext=["nhr", "nin", "nsq"])
     params:
-        database_path = resultpath+"DB/"+database_name        
+        database_path = resultpath+"DB/"+database_name
+    conda:
+        "env/blast.yaml"                  
     shell:
         """
         makeblastdb -in {input.ref_fasta_file} -out {params.database_path} -input_type fasta -dbtype nucl
@@ -117,12 +122,15 @@ rule blastn_ref:
         fasta_file = rules.converting.output.converted_fastq,
         database = rules.make_db.output.database ,
     output:
-        R_data = resultpath+"BLASTN_RESULT/{barcode}_fmt.txt" ,
+        R_data = resultpath+"BLASTN_RESULT/{barcode}_fmt.txt" 
+    threads: 4
     params:
-        database_path = resultpath+"DB/"+database_name         
+        database_path = resultpath+"DB/"+database_name    
+    conda:
+        "env/blast.yaml"               
     shell:
         """
-        blastn -db {params.database_path} -query {input.fasta_file} -outfmt 6 -out {output.R_data}
+        blastn -db {params.database_path} -query {input.fasta_file} -outfmt 6 -out {output.R_data} -num_threads {threads}
         """   
 
 rule blastn_analysis:
@@ -137,6 +145,8 @@ rule blastn_analysis:
         ref_count_plot = resultpath+"BLASTN_ANALYSIS/{barcode}_barplot.png"
     params:
         anal=analysis
+    conda:
+        "env/seqtk.yaml"          
     shell:
         """
         Rscript script/Blastn_analysis.R {input.R_data} \
@@ -152,6 +162,8 @@ rule extract_read_from_merge:
         trim_fastq = rules.trimming.output.trimmed_fastq
     output:
         merged_filtered = resultpath+"FILTERED/{barcode}_bestref.fastq" 
+    conda:
+        "env/seqkit.yaml"          
     shell:
         """
         seqkit grep --pattern-file {input.read_list} {input.trim_fastq} > {output}
@@ -165,7 +177,9 @@ rule alignemnt:
         merged_filtered = rules.extract_read_from_merge.output.merged_filtered ,
         split_ref_path = rules.split_reference.output.ref_rep ,
     output:
-        spliced_bam = resultpath+"BAM/{barcode}_spliced.bam"      
+        spliced_bam = resultpath+"BAM/{barcode}_spliced.bam"  
+    conda:
+        "env/minimap2.yaml"              
     shell:
         """
         bestref=`cat {input.best_ref}`
@@ -179,6 +193,8 @@ rule sort_index:
     output:
         sorted_bam = resultpath+"BAM/{barcode}_sorted.bam" ,
         index_file = resultpath+"BAM/{barcode}_sorted.bam.bai"
+    conda:
+        "env/samtools.yaml"          
     shell:
         """
         samtools sort {input.bam} > {output.sorted_bam}
@@ -191,6 +207,8 @@ rule coverage:
         sorted_bam = rules.sort_index.output.sorted_bam
     output:
         coverage = resultpath+"COVERAGE/{barcode}.cov" 
+    conda:
+        "env/bedtools.yaml"          
     shell:
         "bedtools genomecov -ibam {input} -d > {output}"
 
@@ -203,6 +221,8 @@ rule variant_calling:
         sorted_bam = rules.sort_index.output.sorted_bam
     output:
         vcf_bcftools = resultpath+"VCF/{barcode}.vcf" 
+    conda:
+        "env/bcftools.yaml"          
     shell:
         """
         bestref=`cat {input.best_ref}`
@@ -217,7 +237,9 @@ rule VC_norm:
         best_ref = rules.blastn_analysis.output.best_ref ,
         vcf = rules.variant_calling.output.vcf_bcftools
     output:
-        vcf_norm = resultpath+"VCF_NORM/{barcode}_norm.vcf" ,     
+        vcf_norm = resultpath+"VCF_NORM/{barcode}_norm.vcf" 
+    conda:
+        "env/bcftools.yaml"             
     shell:
         """
         bestref=`cat {input.best_ref}`
@@ -230,7 +252,9 @@ rule VC_filter:
     input:
         vcf_norm = rules.VC_norm.output.vcf_norm
     output:
-        vcf_filter = resultpath+"VCF_FILTER/{barcode}_filter.vcf.gz"     
+        vcf_filter = resultpath+"VCF_FILTER/{barcode}_filter.vcf.gz"   
+    conda:
+        "env/bcftools.yaml"           
     shell:
         "bcftools filter --IndelGap 5 {input.vcf_norm} -Oz -o {output.vcf_filter}"   
 
@@ -243,6 +267,8 @@ rule create_cons:
         vcf_filter = rules.VC_filter.output.vcf_filter
     output:
         cons = resultpath+"CONS/{barcode}.fasta" 
+    conda:
+        "env/bcftools.yaml"         
     shell:
         """
         bestref=`cat {input.best_ref}`
