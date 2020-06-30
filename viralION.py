@@ -35,9 +35,12 @@ rule all:
         best_ref = expand(resultpath+"BLASTN_ANALYSIS/{barcode}_bestref.txt",barcode=BARCODE),
         merged_filtered = expand(resultpath+"FILTERED/{barcode}_bestref.fastq" ,barcode=BARCODE),
         spliced_bam = expand(resultpath+"BAM/{barcode}_spliced.bam"  ,barcode=BARCODE),
-
-
-
+        sorted_bam = expand(resultpath+"BAM/{barcode}_sorted.bam" ,barcode=BARCODE),
+        coverage = expand(resultpath+"COVERAGE/{barcode}.cov" ,barcode=BARCODE), 
+        vcf_bcftools = expand(resultpath+"VCF/{barcode}.vcf" ,barcode=BARCODE), 
+        vcf_norm = expand(resultpath+"VCF_NORM/{barcode}_norm.vcf"  ,barcode=BARCODE), 
+        vcf_filter = expand(resultpath+"VCF_FILTER/{barcode}_filter.vcf.gz"  ,barcode=BARCODE),      
+        cons = expand(resultpath+"CONS/{barcode}.fasta" ,barcode=BARCODE),    
 
 
 #concatenate all fastq files 
@@ -162,11 +165,89 @@ rule alignemnt:
         merged_filtered = rules.extract_read_from_merge.output.merged_filtered ,
         split_ref_path = rules.split_reference.output.ref_rep ,
     output:
-        spliced_bam = resultpath+"BAM/{barcode}_spliced.bam" 
-    params:
-        pathref= resultpath         
+        spliced_bam = resultpath+"BAM/{barcode}_spliced.bam"      
     shell:
         """
         bestref=`cat {input.best_ref}`
         minimap2 -ax splice {input.split_ref_path}${{bestref}}.fasta {input.merged_filtered} > {output.spliced_bam}
         """  
+rule sort_index:
+    message:
+        "sorting and indexing bam files using samtools."
+    input:
+        bam = rules.alignemnt.output.spliced_bam ,
+    output:
+        sorted_bam = resultpath+"BAM/{barcode}_sorted.bam" ,
+        index_file = resultpath+"BAM/{barcode}_sorted.bam.bai"
+    shell:
+        """
+        samtools sort {input.bam} > {output.sorted_bam}
+        samtools index {output.sorted_bam}
+        """        
+rule coverage:
+    message:
+        "compute coverage from bam using bedtools."
+    input:
+        sorted_bam = rules.sort_index.output.sorted_bam
+    output:
+        coverage = resultpath+"COVERAGE/{barcode}.cov" 
+    shell:
+        "bedtools genomecov -ibam {input} -d > {output}"
+
+rule variant_calling:
+    message:
+        "compute genetic likehood and variant calling using bcftools."
+    input:
+        split_ref_path = rules.split_reference.output.ref_rep ,
+        best_ref = rules.blastn_analysis.output.best_ref ,
+        sorted_bam = rules.sort_index.output.sorted_bam
+    output:
+        vcf_bcftools = resultpath+"VCF/{barcode}.vcf" 
+    shell:
+        """
+        bestref=`cat {input.best_ref}`
+        bcftools mpileup -f {input.split_ref_path}${{bestref}}.fasta {input.sorted_bam} | bcftools call -mv -Ov -o {output.vcf_bcftools} 
+        """   
+
+rule VC_norm:
+    message:
+        "normalize indel from vcf using bcftools."
+    input:
+        split_ref_path = rules.split_reference.output.ref_rep ,
+        best_ref = rules.blastn_analysis.output.best_ref ,
+        vcf = rules.variant_calling.output.vcf_bcftools
+    output:
+        vcf_norm = resultpath+"VCF_NORM/{barcode}_norm.vcf" ,     
+    shell:
+        """
+        bestref=`cat {input.best_ref}`
+        bcftools norm -f {input.split_ref_path}${{bestref}}.fasta {input.vcf} -Ov -o {output.vcf_norm}
+        """
+
+rule VC_filter:
+    message:
+        "filter adjacent indel from vcf using bcftools."
+    input:
+        vcf_norm = rules.VC_norm.output.vcf_norm
+    output:
+        vcf_filter = resultpath+"VCF_FILTER/{barcode}_filter.vcf.gz"     
+    shell:
+        "bcftools filter --IndelGap 5 {input.vcf_norm} -Oz -o {output.vcf_filter}"   
+
+rule create_cons:
+    message:
+        "generating consensus from filter.vcf using bcftools."
+    input:
+        split_ref_path = rules.split_reference.output.ref_rep ,
+        best_ref = rules.blastn_analysis.output.best_ref ,
+        vcf_filter = rules.VC_filter.output.vcf_filter
+    output:
+        cons = resultpath+"CONS/{barcode}.fasta" 
+    shell:
+        """
+        bestref=`cat {input.best_ref}`
+        bcftools index {input.vcf_filter}
+        cat {input.split_ref_path}${{bestref}}.fasta | bcftools consensus {input.vcf_filter} > {output.cons}
+        """       
+
+
