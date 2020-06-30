@@ -21,11 +21,15 @@ Instalation and use of these tool is managed by conda and snakemake.
 # Quick using steps
 
 Step 1 : Get and install Anaconda here if needed => https://www.anaconda.com/products/individual <=  
-Step 2 : make sure snakemake is installed on your computer. You can quikly create a new conda environment with snakemake by using this command: conda create -n snakemake_launch_pipeline -c bioconda snakemake
-Step 3 : download latest version of the pipeline using git command: git clone XXXXXXXXXXXXXXXXX
-Step 4 : launch the pipeline by executing:
+Step 2 : make sure snakemake is installed on your computer. You can quikly create a new conda environment with snakemake by using this command:  
+    conda create -n snakemake_launch_pipeline -c bioconda snakemake
+Step 3 : download latest version of the pipeline using git command:  
+    git clone XXXXXXXXXXXXXXXXX
+Step 4 : launch the pipeline by executing:  
+```
 cd XXXXX
 ./XXXXX.sh
+```
 
 # Pipeline ouputs
 
