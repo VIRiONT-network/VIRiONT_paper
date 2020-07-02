@@ -3,11 +3,15 @@
 ################################################################################
 ##########################    CONFIGURATION    #################################
 ################################################################################
+#fastq location
 data_loc="/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/DATA_HDV/" #Define path where the "barcode*" are stored
+#output location
 result_loc="/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/RESULT_HDV/" #Define path where storing analysis results 
+#custom reference file to use
 ref_loc="ref/ICTVHDV.fasta" # Path to fastafile containing genotype sequences for blast
+#metadata location for the custom reference
 ref_table="analysis/table_analysis.csv" # Table location containing reference list for the blastn analysis. /!\ Column must correspond to the fasta headers in ref_loc.
-analysis_name="ICTVHDV" # Analysis Name. /!\ name must correpond to the choosen column name in ref_table.
+#core number
 thread_number=8 #Define number of threads to use for the analysis
 ################################################################################
 
@@ -21,19 +25,22 @@ snakemake -s viralION.py \
     --config PathToData=$data_loc \
              PathToResult=$result_loc \
              PathToReference=$ref_loc \
-             AnalysisName=$analysis_name \
              AnalysisTable=$ref_table
 ################################################################################
+
+#If troubles with lock:
+#snakemake -s viralION.py \
+#    --unlock \
+#    --use-conda \
+#    --core $thread_number \
+#   --config PathToData=$data_loc \
+#             PathToResult=$result_loc \
+#             PathToReference=$ref_loc \
+#             AnalysisTable=$ref_table
 
 #Generate workflow dag
 #snakemake -s viralION.py --rulegraph \
 #--config PathToData=$data_loc \
 #             PathToResult=$result_loc \
 #             PathToReference=$ref_loc \
-#             AnalysisName=$analysis_name \
 #             AnalysisTable=$ref_table| dot -Tpdf > documents/workflow.pdf
-
-
-
-
-

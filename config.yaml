@@ -9,9 +9,6 @@ PathToResult : "/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/RESULTS/"
 #Indicate fasta file containing reference for all genotype
 PathToReference : "ref/HBV_REF.fasta"
 
-#Indicate Column for blast analysis
-AnalysisName : "HBV_REF"
-
 #Analysis table used by R for blastn analysis
 AnalysisTable : "analysis/table_analysis.csv"
 
