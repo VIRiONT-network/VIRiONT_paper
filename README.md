@@ -22,13 +22,18 @@ Instalation and use of these tool is managed by conda and snakemake.
 
 Step 1 : Get and install Anaconda here if needed => https://www.anaconda.com/products/individual <=  
 Step 2 : make sure snakemake is installed on your computer. You can quikly create a new conda environment with snakemake by using this command:  
-    conda create -n snakemake_launch_pipeline -c bioconda snakemake
+```
+conda create -c conda-forge -c bioconda -n snakemake snakemake
+```
 Step 3 : download latest version of the pipeline using git command:  
-    git clone XXXXXXXXXXXXXXXXX
+```
+git clone XXXXXXXXXXXXXXXXX
+```
 Step 4 : launch the pipeline by executing:  
 ```
+conda activate snakemake
 cd XXXXX
-./XXXXX.sh
+k5start -U -f /home/chu-lyon.fr/regueex/login.kt -- nohup ./launch_snakefile.sh > Report_Analysis.txt & 
 ```
 
 # Pipeline ouputs
@@ -53,10 +58,8 @@ CONS folder, containing consensus sequence generated for each fastq using bcftoo
 
 Here is a view on the parameters to check before launching analysis. To change parameters, you have to open MyREF/XXXXX.sh with a text editor. All parameters are located in the ###### CONFIGURATION ####### section.
 
-rep_report : a path is required to indicate where to write the pipeline execution report.
-data_loc : here is the path where fastq data are stored. Be sure this path leads on all barcode folders you want to analyse. Currently, only fastq repositories marked as "barcode*" are interpreted as repository data.
+data_loc : here is the path where fastq data are stored. Be sure this path leads on all barcode folders you want to analyse. Currently, only fastq repositories marked as "barcode*" are interpreted as repository data. If needed, rename your rep as "barcode*"
 result_loc : path leading to the output folders produced by the analysis. NB: snakemake will recursively create the path, so a previous mkdir is unnecessary.
-ref_loc : path to the file containing all references sequences used for the blastn analysis.
-ref_table : path to the Table (currently a csv is required) containing reference list for the blastn analysis. /!\ Column must correspond to the fasta name in ref_loc for correctly computing the best reference, and each row must correspond to each fasta header in the reference fasta file.
-analysis_name : # Analysis Name. /!\ name must correpond to the choosen column name in ref_table. Will be removed for more simplicity.
-thread_number : Define number of threads to use for the analysis
+ref_loc : path to the file containing all references sequences used for the blastn analysis. We you need to create a new one, check examples in ref/ folder.
+ref_table : path to the Table (currently a csv is required) containing reference list for the blastn analysis. /!\ Column must correspond to the fasta name in ref_loc for correctly computing the best reference, and each row must correspond to each fasta header in the reference fasta file. Please check analysis/table_analysis if needed.
+thread_number : Define number of threads to use for the analysis.
