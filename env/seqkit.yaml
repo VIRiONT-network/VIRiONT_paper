@@ -4,5 +4,4 @@ channels:
   - defaults
 dependencies:
   - seqkit=0.12.1=0
-prefix: /home/chu-lyon.fr/regueex/anaconda3/envs/seqkit
 

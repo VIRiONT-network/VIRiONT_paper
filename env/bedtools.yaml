@@ -10,5 +10,4 @@ dependencies:
   - libstdcxx-ng=9.1.0=hdf63c60_0
   - xz=5.2.5=h7b6447c_0
   - zlib=1.2.11=h7b6447c_3
-prefix: /home/chu-lyon.fr/regueex/anaconda3/envs/bedtools
 

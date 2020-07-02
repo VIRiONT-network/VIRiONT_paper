@@ -7,5 +7,4 @@ dependencies:
   - libgcc-ng=9.1.0=hdf63c60_0
   - seqtk=1.3=hed695b0_2
   - zlib=1.2.11=h7b6447c_3
-prefix: /home/chu-lyon.fr/regueex/anaconda3/envs/seqtk
 
