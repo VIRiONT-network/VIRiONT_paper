@@ -19,7 +19,7 @@ thread_number=8 #Define number of threads to use for the analysis
 ################################################################################
 #########################    LAUNCH SNAKEMAKE    ###############################
 ################################################################################
-snakemake -s viralION.py \
+snakemake -s VIRiONT.py \
     --use-conda \
     --core $thread_number \
     --config PathToData=$data_loc \
