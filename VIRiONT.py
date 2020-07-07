@@ -39,7 +39,9 @@ rule all:
         #vcf_bcftools = expand(resultpath+"VCF/{barcode}.vcf" ,barcode=BARCODE), 
         #vcf_norm = expand(resultpath+"VCF_NORM/{barcode}_norm.vcf"  ,barcode=BARCODE), 
         #vcf_filter = expand(resultpath+"VCF_FILTER/{barcode}_filter.vcf.gz"  ,barcode=BARCODE),      
-        cons = expand(resultpath+"CONS/{barcode}.fasta" ,barcode=BARCODE),    
+        cons = expand(resultpath+"CONS/{barcode}.fasta" ,barcode=BARCODE),   
+        vcf_clair = expand( resultpath+"VCF_CLAIR/{barcode}.vcf" ,barcode=BARCODE), 
+ 
 
 rule merge:
     message:
@@ -87,7 +89,8 @@ rule split_reference:
     input:
         ref_file= refpath
     output:
-        ref_rep=directory(resultpath+"REFSEQ/")
+        #ref_rep=directory(resultpath+"REFSEQ/")
+        ref_rep=resultpath+"REFSEQ/"
     shell:
         "script/split_reference.py {input} {output} "
 
@@ -268,4 +271,28 @@ rule create_cons:
         cat {input.split_ref_path}${{bestref}}.fasta | bcftools consensus {input.vcf_filter} > {output.cons}
         """       
 
-
+rule clair_VC:
+    message:
+        "Variant Calling using Clair."
+    input:
+        best_ref = rules.blastn_analysis.output.best_ref ,
+        split_ref_path = rules.split_reference.output.ref_rep ,
+        sorted_bam = rules.sort_index.output.sorted_bam ,
+    output:
+        vcf_clair = resultpath+"VCF_CLAIR/{barcode}.vcf"
+    singularity:
+        "/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/clair-ont.simg"
+    shell:
+        """
+        bestref=`cat {input.best_ref}`
+        clair.py callVarBam  \
+            --threshold 0.5 \
+            --minCoverage 10 \
+            --haploid_precision \
+            --chkpnt_fn "ont/model" \
+            --ref_fn {input.split_ref_path}${{bestref}}.fasta \
+            --bam_fn {input.sorted_bam} \
+            --ctgName ${{bestref}} \
+            --sampleName {wildcards.barcode} \
+            --call_fn {output.vcf_clair}
+        """

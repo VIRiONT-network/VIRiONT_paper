@@ -1,3 +1,4 @@
 *snakemake.log*
 .snakemake/
+.keras/
 Report_Analysis.txt
