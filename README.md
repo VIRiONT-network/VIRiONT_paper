@@ -23,17 +23,17 @@ Instalation and use of these tool is managed by conda and snakemake.
 Step 1 : Get and install Anaconda here if needed => https://www.anaconda.com/products/individual <=  
 Step 2 : make sure snakemake is installed on your computer. You can quikly create a new conda environment with snakemake by using this command:  
 ```
-conda create -c conda-forge -c bioconda -n snakemake snakemake
+conda create -c bioconda -c conda-forge -n snakemake snakemake-minimal
 ```
 Step 3 : download latest version of the pipeline using git command:  
 ```
-git clone XXXXXXXXXXXXXXXXX
+git clone https://github.com/Stygiophobic/VIRiONT.git
 ```
 Step 4 : launch the pipeline by executing:  
 ```
 conda activate snakemake
-cd XXXXX
-k5start -U -f /home/chu-lyon.fr/regueex/login.kt -- nohup ./launch_snakefile.sh > Report_Analysis.txt & 
+cd VIRiONT
+nohup ./launch_snakefile.sh > Report_Analysis.txt & 
 ```
 
 # Pipeline ouputs
