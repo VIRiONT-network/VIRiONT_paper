@@ -41,7 +41,10 @@ rule all:
         #vcf_filter = expand(resultpath+"VCF_FILTER/{barcode}_filter.vcf.gz"  ,barcode=BARCODE),      
         cons = expand(resultpath+"CONS/{barcode}.fasta" ,barcode=BARCODE),   
         vcf_clair = expand( resultpath+"VCF_CLAIR/{barcode}.vcf" ,barcode=BARCODE), 
- 
+        medaka_result= expand("medaka_output/{barcode}",barcode=BARCODE), 
+        medaka_cons= expand("med_consensus/{barcode}",barcode=BARCODE), 
+
+
 
 rule merge:
     message:
@@ -89,8 +92,8 @@ rule split_reference:
     input:
         ref_file= refpath
     output:
-        #ref_rep=directory(resultpath+"REFSEQ/")
-        ref_rep=resultpath+"REFSEQ/"
+        ref_rep=directory(resultpath+"REFSEQ/")
+        #ref_rep=resultpath+"REFSEQ/"
     shell:
         "script/split_reference.py {input} {output} "
 
@@ -270,6 +273,43 @@ rule create_cons:
         bcftools index {input.vcf_filter}
         cat {input.split_ref_path}${{bestref}}.fasta | bcftools consensus {input.vcf_filter} > {output.cons}
         """       
+
+rule medakaVC:
+    input:
+        split_ref_path = rules.split_reference.output.ref_rep ,
+        best_ref = rules.blastn_analysis.output.best_ref ,
+        sorted_bam = rules.sort_index.output.sorted_bam        
+    output:
+        medaka_result= directory("medaka_output/{barcode}")
+    conda:
+        "env/medaka.yaml"    
+    shell:
+        """
+        bestref=`cat {input.best_ref}`
+        medaka_variant -d \
+            -f {input.split_ref_path}${{bestref}}.fasta \
+            -i {input.sorted_bam} \
+            -o {output.medaka_result}
+        """
+
+rule medakaCONS:
+    input:
+        split_ref_path = rules.split_reference.output.ref_rep ,
+        best_ref = rules.blastn_analysis.output.best_ref ,
+        merged_filtered = rules.extract_read_from_merge.output.merged_filtered ,
+    output:
+        medaka_result= directory("med_consensus/{barcode}")
+    conda:
+        "env/medaka.yaml"    
+    shell:
+        """
+        bestref=`cat {input.best_ref}`
+        medaka_consensus -v \
+            -d {input.split_ref_path}${{bestref}}.fasta \
+            -i {input.merged_filtered} \
+            -o {output.medaka_result}
+        """
+
 
 rule clair_VC:
     message:
