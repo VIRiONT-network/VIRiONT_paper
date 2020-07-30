@@ -4,6 +4,8 @@
 
 This pipeline is designed to analyse viral data from nanopore sequencing. It was primary developed to analyse HBV data, but was extended also to HDV. However, this pipeline can be adapted for other virus aswell with custom preparations specific to the virus.
 
+This pipeline was primary designed for studying nanopore's long read sequencing (about 3kb,according to the full HBV genome size). If you plan to use this workflow on shorter reads, be sure to chose and adapt parameters used for the filtering step (*rule trimming*).
+
 # Workflow
 
 The pipeline take as input fastq from demultiplexed nanopore data.  
