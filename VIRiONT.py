@@ -40,9 +40,11 @@ rule all:
         #vcf_norm = expand(resultpath+"VCF_NORM/{barcode}_norm.vcf"  ,barcode=BARCODE), 
         #vcf_filter = expand(resultpath+"VCF_FILTER/{barcode}_filter.vcf.gz"  ,barcode=BARCODE),      
         cons = expand(resultpath+"CONS/{barcode}.fasta" ,barcode=BARCODE),   
-        vcf_clair = expand( resultpath+"VCF_CLAIR/{barcode}.vcf" ,barcode=BARCODE), 
+        #vcf_clair = expand( resultpath+"VCF_CLAIR/{barcode}.vcf" ,barcode=BARCODE), 
         medaka_result= expand("medaka_output/{barcode}",barcode=BARCODE), 
         medaka_cons= expand("med_consensus/{barcode}",barcode=BARCODE), 
+        fasta_cons = expand(resultpath+"CONS_PERL/{barcode}_cons.fasta",barcode=BARCODE), 
+
 
 
 
@@ -70,7 +72,7 @@ rule trimming:
     conda:
         "env/nanofilt.yaml"
     shell:
-        "NanoFilt --quality 10 --length 100 --maxlength 1500 {input} > {output} "
+        "NanoFilt --quality 10 --length 1500 --maxlength 3500 {input} > {output} "
 
 rule converting:
     message:
@@ -210,129 +212,29 @@ rule coverage:
     shell:
         "bedtools genomecov -ibam {input} -d > {output}"
 
-rule variant_calling:
-    message:
-        "compute genetic likehood and variant calling using bcftools."
+rule bam_mpileup:
     input:
-        split_ref_path = rules.split_reference.output.ref_rep ,
-        best_ref = rules.blastn_analysis.output.best_ref ,
-        sorted_bam = rules.sort_index.output.sorted_bam
-    output:
-        vcf_bcftools = resultpath+"VCF/{barcode}.vcf" 
-    conda:
-        "env/bcftools.yaml"          
-    shell:
-        """
-        bestref=`cat {input.best_ref}`
-        bcftools mpileup -f {input.split_ref_path}${{bestref}}.fasta {input.sorted_bam} | bcftools call -mv -Ov -o {output.vcf_bcftools} 
-        """   
-
-rule VC_norm:
-    message:
-        "normalize indel from vcf using bcftools."
-    input:
-        split_ref_path = rules.split_reference.output.ref_rep ,
-        best_ref = rules.blastn_analysis.output.best_ref ,
-        vcf = rules.variant_calling.output.vcf_bcftools
-    output:
-        vcf_norm = resultpath+"VCF_NORM/{barcode}_norm.vcf" 
-    conda:
-        "env/bcftools.yaml"             
-    shell:
-        """
-        bestref=`cat {input.best_ref}`
-        bcftools norm -f {input.split_ref_path}${{bestref}}.fasta {input.vcf} -Ov -o {output.vcf_norm}
-        """
-
-rule VC_filter:
-    message:
-        "filter adjacent indel from vcf using bcftools."
-    input:
-        vcf_norm = rules.VC_norm.output.vcf_norm
-    output:
-        vcf_filter = resultpath+"VCF_FILTER/{barcode}_filter.vcf.gz"   
-    conda:
-        "env/bcftools.yaml"           
-    shell:
-        "bcftools filter --IndelGap 5 {input.vcf_norm} -Oz -o {output.vcf_filter}"   
-
-rule create_cons:
-    message:
-        "generating consensus from filter.vcf using bcftools."
-    input:
-        split_ref_path = rules.split_reference.output.ref_rep ,
-        best_ref = rules.blastn_analysis.output.best_ref ,
-        vcf_filter = rules.VC_filter.output.vcf_filter
-    output:
-        cons = resultpath+"CONS/{barcode}.fasta" 
-    conda:
-        "env/bcftools.yaml"         
-    shell:
-        """
-        bestref=`cat {input.best_ref}`
-        bcftools index {input.vcf_filter}
-        cat {input.split_ref_path}${{bestref}}.fasta | bcftools consensus {input.vcf_filter} > {output.cons}
-        """       
-
-rule medakaVC:
-    input:
-        split_ref_path = rules.split_reference.output.ref_rep ,
-        best_ref = rules.blastn_analysis.output.best_ref ,
-        sorted_bam = rules.sort_index.output.sorted_bam        
-    output:
-        medaka_result= directory("medaka_output/{barcode}")
-    conda:
-        "env/medaka.yaml"    
-    shell:
-        """
-        bestref=`cat {input.best_ref}`
-        medaka_variant -d \
-            -f {input.split_ref_path}${{bestref}}.fasta \
-            -i {input.sorted_bam} \
-            -o {output.medaka_result}
-        """
-
-rule medakaCONS:
-    input:
-        split_ref_path = rules.split_reference.output.ref_rep ,
-        best_ref = rules.blastn_analysis.output.best_ref ,
-        merged_filtered = rules.extract_read_from_merge.output.merged_filtered ,
-    output:
-        medaka_result= directory("med_consensus/{barcode}")
-    conda:
-        "env/medaka.yaml"    
-    shell:
-        """
-        bestref=`cat {input.best_ref}`
-        medaka_consensus -v \
-            -d {input.split_ref_path}${{bestref}}.fasta \
-            -i {input.merged_filtered} \
-            -o {output.medaka_result}
-        """
-
-
-rule clair_VC:
-    message:
-        "Variant Calling using Clair."
-    input:
-        best_ref = rules.blastn_analysis.output.best_ref ,
         split_ref_path = rules.split_reference.output.ref_rep ,
         sorted_bam = rules.sort_index.output.sorted_bam ,
+        best_ref = rules.blastn_analysis.output.best_ref ,
     output:
-        vcf_clair = resultpath+"VCF_CLAIR/{barcode}.vcf"
-    singularity:
-        "/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/clair-ont.simg"
+        vcf = resultpath+"VCF/{barcode}_sammpileup.vcf"
+    threads:6
+    resources: mem_gb= 22  
+    conda:
+        "env/samtools.yaml"  
     shell:
         """
         bestref=`cat {input.best_ref}`
-        clair.py callVarBam  \
-            --threshold 0.5 \
-            --minCoverage 10 \
-            --haploid_precision \
-            --chkpnt_fn "ont/model" \
-            --ref_fn {input.split_ref_path}${{bestref}}.fasta \
-            --bam_fn {input.sorted_bam} \
-            --ctgName ${{bestref}} \
-            --sampleName {wildcards.barcode} \
-            --call_fn {output.vcf_clair}
+        samtools mpileup -d 20000 -f {input.split_ref_path}${{bestref}}.fasta {input.sorted_bam} -Q 7 > {output}
+        """             
+
+rule script_varcaller:
+    input:
+        vcf = rules.bam_mpileup.output.vcf
+    output:
+        fasta_cons = resultpath+"CONS_PERL/{barcode}_cons.fasta"
+    shell:
         """
+        perl script/pathogen_varcaller_MINION.PL {input} 0.5 {output} 
+        """     
