@@ -8,10 +8,10 @@ This pipeline is designed to analyse viral data from nanopore sequencing. It was
 
 The pipeline take as input fastq from demultiplexed nanopore data.  
 For each barcode, here is the global workflow:  
-Step1 => merging fastq  
-Step2 => filtering merged fastq  
-Step3 => blast research on each reference given  
-Step4 => build consensus sequence on the majoritary reference  
+**Step1** => merging fastq  
+**Step2** => filtering merged fastq  
+**Step3** => blast research on each reference given  
+**Step4** => build consensus sequence on the majoritary reference  
 
 # Requirements & Tools
 
