@@ -1,0 +1,83 @@
+
+picard AddOrReplaceReadGroups \
+    I= /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/RESULT_HBV_PARIS/barcode02.bam \
+    O= /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/RESULT_HBV_PARIS/barcode02_picard.bam \
+    RGID=4 \
+    RGLB=lib1 \
+    RGPL=illumina \
+    RGPU=unit1 \
+    RGSM=20
+
+samtools sort /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/RESULT_HBV_PARIS/barcode02_picard.bam > /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/RESULT_HBV_PARIS/barcode02_p_sorted.bam
+samtools index /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/RESULT_HBV_PARIS/barcode02_p_sorted.bam
+
+picard CreateSequenceDictionary \
+    R= /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/RESULT_HBV_PARIS/REFSEQ/P3_GTE.fasta \
+    O= /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/RESULT_HBV_PARIS/REFSEQ/P3_GTE.dict
+
+gatk --java-options "-Xmx10g" HaplotypeCaller  \
+    -R /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/RESULT_HBV_PARIS/REFSEQ/P3_GTE.fasta \
+    -ploidy 1 \
+    -I /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/RESULT_HBV_PARIS/barcode02_p_sorted.bam \
+    -O /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/RESULT_HBV_PARIS/barcode02_gatk.vcf
+
+gatk VariantFiltration \
+   	-R /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/RESULT_HBV/REFSEQ/P3_GTF.fasta \
+   	-V /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/barcode02_gatk.vcf \
+   	-O /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/barcode02_gatk_filter.vcf \
+   	--filter-expression "QD < 2.0 || FS > 60.0 || MQ < 40.0 || MQRankSum < -12.5 || ReadPosRankSum < -8.0" \
+   	--filter-name "Standard" 
+
+gunzip -c {output.vcf_filt} > {output.vcf_filt_extract}
+sed '/^##/d' {output.vcf_filt_extract} | sed 's/#//' > {output.vcf_r}
+
+
+
+#nanopolish
+/srv/nfs/ngs-stockage/NGS_Virologie/CCharre/MinION_HBV/3_Last_HBV_Analyses_guppyv3.5.2/last_HBV_FAST5/fast5
+/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/DATA_HBV/sequencing_summary_FAM95971_c324351c.txt
+
+#Sub sampling
+seqtk sample /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/RESULT_HBV_PARIS/FILTERED/barcode02_bestref.fastq 200 \
+    > /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/RESULT_HBV_PARIS/barcode02_downsampled.fastq
+
+./nanopolish index \
+     --directory /srv/nfs/ngs-stockage/NGS_Virologie/CCharre/MinION_HBV/1_Data_Paris_guppyv3.5.2AnalysesLaureBoizeau_RefINTS/fast5_pass \
+     --sequencing-summary /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/DATA_HBV_PARIS/VIRO_PROTON_20190228_FAK61213_MN30059_sequencing_run_pool5VHB_83798_sequencing_summary.txt \
+     /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/RESULT_HBV_PARIS/barcode02_downsampled.fastq
+
+minimap2  -a -x map-ont /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/RESULT_HBV/REFSEQ/P3_GTF.fasta \
+    /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/RESULT_HBV/FILTERED/barcode02_bestref.fastq \
+    > /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/barcode02.sam
+
+samtools sort /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/barcode02.sam \
+    > /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/barcode02.bam
+
+samtools index /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/barcode02.bam
+
+nohup ./nanopolish variants \
+    --ploidy 1 \
+    --reads /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/RESULT_HBV/FILTERED/barcode02_bestref.fastq \
+    --bam /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/barcode02.bam \
+    --genome /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/RESULT_HBV/REFSEQ/P3_GTF.fasta \
+    --threads 8 \
+    --outfile /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/testBC02_nanopolish.vcf &
+
+#test medaka
+#medaka:
+medaka_variant -f /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/save_result/RESULT_HDV/REFSEQ/P4_HDV5.fasta \
+     -i /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/save_result/RESULT_HDV/BAM/barcode03_sorted.bam \
+     -o /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/save_result/RESULT_HDV/VCF/barcode03
+
+
+#test callVarBam
+clair.py callVarBam  \
+    --threshold 0.5 \
+    --haploid_precision \
+    --chkpnt_fn "ont/model" \
+    --ref_fn "/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/RESULT_HBV/REFSEQ/P3_GTJ.fasta" \
+    --bam_fn "/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/RESULT_HBV/BAM/barcode02_sorted.bam" \
+    --ctgName "P3_GTJ" \
+    --sampleName "barcode03" \
+    --call_fn "/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/RESULT_HBV/barcode02_testcutoffFA.vcf"
+
