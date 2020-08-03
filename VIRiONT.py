@@ -43,6 +43,7 @@ rule all:
         spliced_bam = expand(resultpath+"BAM/{barcode}_spliced.bam"  ,barcode=BARCODE),
         sorted_bam = expand(resultpath+"BAM/{barcode}_sorted.bam" ,barcode=BARCODE),
         coverage = expand(resultpath+"COVERAGE/{barcode}.cov" ,barcode=BARCODE), 
+        cov_plot = resultpath+"COVERAGE/cov_plot.pdf" ,
         fasta_cons = expand(resultpath+"CONS_PERL/{barcode}_cons.fasta",barcode=BARCODE), 
         #QC
         flagstat = expand(resultpath+"QC_ANALYSIS/FLAGSTAT/{barcode}_human.txt",barcode=BARCODE), 
@@ -313,10 +314,6 @@ rule concat_metrics:
             readfile.close()
         sumfile.close()
         
-
-
-
-
 rule alignemnt:
     message:
         "alignment on the majoritary reference using minimap2."
@@ -366,7 +363,6 @@ rule alignqc:
             --no_transcriptome  --output_folder {output.alignqc_results}
         """
 
-
 rule coverage:
     message:
         "compute coverage from bam using bedtools."
@@ -377,7 +373,23 @@ rule coverage:
     conda:
         "env/bedtools.yaml"          
     shell:
-        "bedtools genomecov -ibam {input} -d > {output}"
+        """
+        bedtools genomecov -ibam {input} -d | sed 's/$/ {wildcards.barcode}/' > {output.coverage} 
+        """
+rule plot_cov:
+    input:
+        cov = expand(rules.coverage.output.coverage,barcode=BARCODE)
+    output:
+        cov_sum = resultpath+"COVERAGE/cov_sum.cov" ,
+        cov_plot = resultpath+"COVERAGE/cov_plot.pdf"
+    conda:
+        "env/Renv.yaml" 
+    shell:
+        """
+        cat {input.cov} > {output.cov_sum}
+        Rscript script/plot_cov.R {output.cov_sum} {output.cov_plot}
+        """
+
 
 rule bam_mpileup:
     input:
