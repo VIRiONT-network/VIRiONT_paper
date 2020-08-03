@@ -13,4 +13,5 @@ PathToReference : "ref/HBV_REF.fasta"
 AnalysisTable : "analysis/table_analysis.csv"
 
 #Params tools
-TrimmParam : 500
+Lmin : 1500
+Lmax : 3500
