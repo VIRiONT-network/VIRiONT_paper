@@ -11,22 +11,35 @@ However it's possible to check the barplot summarizing blastn results to possibl
 
 # Workflow
 
-The pipeline take as input fastq from demultiplexed nanopore data.  
+The pipeline take as input uncompressed fastq from demultiplexed nanopore data, usually stored like this:  
+```
+barcoding/barcode01/*.fastq
+barcoding/barcode02/*.fastq
+...
+barcoding/barcode24/*.fastq
+``` 
 For each barcode, here is the global workflow:  
 **Step1** => merging fastq  
 **Step2** => filtering merged fastq  
 **Step3** => blast research on each reference given  
 **Step4** => build consensus sequence on the majoritary reference  
 
+# workflow dag
+
+![alt text](https://github.com/Stygiophobic/VIRiONT/tree/master/documents/workflow.png "VIRiONT dag")
+
 # Requirements & Tools
 
-This pipeline use several tools.  
-Instalation and use of these tool is managed by conda and snakemake.
+Instalation and use of the tools required for VIRiONT is fully managed by conda and snakemake.  
+Environment files and software versions are available in the *env/* folder.  
+
 
 # Quick using steps
 
 Step 1 : Get and install Anaconda here if needed => https://www.anaconda.com/products/individual <=  
-Step 2 : make sure snakemake is installed on your computer. You can quikly create a new conda environment with snakemake by using this command:  
+Step 2 : make sure snakemake is installed on your computer.  
+Snakemake 3.9.0 version or above is required for conda interaction.  
+You can quikly create a new conda environment with the latest available snakemake version by using this command(currently the 5.20.1 version):  
 ```
 conda create -c bioconda -c conda-forge -n snakemake snakemake-minimal
 ```
