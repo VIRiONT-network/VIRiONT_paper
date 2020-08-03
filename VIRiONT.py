@@ -8,6 +8,8 @@ datapath=config['PathToData']
 resultpath=config['PathToResult']
 refpath=config['PathToReference']
 analysis_table=config['AnalysisTable']
+trim_min=config['Lmin']
+trim_max=config['Lmax']
 
 #get database name
 filename=os.path.basename(refpath)
@@ -27,26 +29,26 @@ rule all:
     input:
         #merged_file = expand(resultpath+'MERGED/{barcode}_merged.fastq',barcode=BARCODE),
         trimmed_file = expand(resultpath+'TRIMMED/{barcode}_trimmed.fastq',barcode=BARCODE),
-        #converted_fastq = expand(resultpath+"FASTA/{barcode}.fasta", barcode=BARCODE),
-        #ref_rep=resultpath+"REFSEQ/",
-        #database = expand(resultpath+"DB/"+database_name+".{ext}", ext=["nhr", "nin", "nsq"]),
-        #R_data = expand(resultpath+"BLASTN_RESULT/{barcode}_fmt.txt" ,barcode=BARCODE),
-        #best_ref = expand(resultpath+"BLASTN_ANALYSIS/{barcode}_bestref.txt",barcode=BARCODE),
-        #merged_filtered = expand(resultpath+"FILTERED/{barcode}_bestref.fastq" ,barcode=BARCODE),
-        #spliced_bam = expand(resultpath+"BAM/{barcode}_spliced.bam"  ,barcode=BARCODE),
-        #sorted_bam = expand(resultpath+"BAM/{barcode}_sorted.bam" ,barcode=BARCODE),
+        human_bam = expand(resultpath+"DEHOSTING/{barcode}_human.bam",barcode=BARCODE),
+        viral_bam = expand(resultpath+"VIRAL/{barcode}_viral.bam",barcode=BARCODE),
+        viral_fastq = expand(resultpath + 'VIRAL/{barcode}_viral.fastq',barcode=BARCODE),
+        converted_fastq = expand(resultpath+"FASTA/{barcode}.fasta", barcode=BARCODE),
+        ref_rep=resultpath+"REFSEQ/",
+        database = expand(resultpath+"DB/"+database_name+".{ext}", ext=["nhr", "nin", "nsq"]),
+        R_data = expand(resultpath+"BLASTN_RESULT/{barcode}_fmt.txt" ,barcode=BARCODE),
+        best_ref = expand(resultpath+"BLASTN_ANALYSIS/{barcode}_bestref.txt",barcode=BARCODE),
+        merged_filtered = expand(resultpath+"FILTERED/{barcode}_bestref.fastq" ,barcode=BARCODE),
+        conv_filtered_fastq = expand(resultpath+"METRIC/{barcode}_readseq.fasta" ,barcode=BARCODE),
+        metric_sum = resultpath+"QC_ANALYSIS/METRICS/metric_summary.tsv",
+        spliced_bam = expand(resultpath+"BAM/{barcode}_spliced.bam"  ,barcode=BARCODE),
+        sorted_bam = expand(resultpath+"BAM/{barcode}_sorted.bam" ,barcode=BARCODE),
         coverage = expand(resultpath+"COVERAGE/{barcode}.cov" ,barcode=BARCODE), 
-        #vcf_bcftools = expand(resultpath+"VCF/{barcode}.vcf" ,barcode=BARCODE), 
-        #vcf_norm = expand(resultpath+"VCF_NORM/{barcode}_norm.vcf"  ,barcode=BARCODE), 
-        #vcf_filter = expand(resultpath+"VCF_FILTER/{barcode}_filter.vcf.gz"  ,barcode=BARCODE),      
-        cons = expand(resultpath+"CONS/{barcode}.fasta" ,barcode=BARCODE),   
-        #vcf_clair = expand( resultpath+"VCF_CLAIR/{barcode}.vcf" ,barcode=BARCODE), 
-        medaka_result= expand("medaka_output/{barcode}",barcode=BARCODE), 
-        medaka_cons= expand("med_consensus/{barcode}",barcode=BARCODE), 
         fasta_cons = expand(resultpath+"CONS_PERL/{barcode}_cons.fasta",barcode=BARCODE), 
-
-
-
+        #QC
+        flagstat = expand(resultpath+"QC_ANALYSIS/FLAGSTAT/{barcode}_human.txt",barcode=BARCODE), 
+        alignqc_results = expand(resultpath+"QC_ANALYSIS/ALIGNQC/{barcode}/",barcode=BARCODE), 
+        fastqc_results = expand(resultpath+"QC_ANALYSIS/FASTQC/{barcode}/",barcode=BARCODE), 
+        multiqc_results = expand(resultpath+"QC_ANALYSIS/MULTIQC/",barcode=BARCODE), 
 
 rule merge:
     message:
@@ -62,6 +64,42 @@ rule merge:
         cat {params.path}{wildcards.barcode}/* > {output}
         """
 
+rule get_hg19:
+    message:
+        "download if necessary the hg19 reference genome."
+    output:
+        hg19_ref =  "ref/hg19.fa"
+    shell:
+        """
+        wget -P ref/ http://hgdownload.cse.ucsc.edu/goldenPath/hg19/bigZips/hg19.fa.gz
+        gunzip ref/hg19.fa.gz       
+        """
+rule index_hg19:
+    input:
+        hg19 = rules.get_hg19.output.hg19_ref
+    output:
+        hg19_index = "ref/hg19.mmi"
+    conda:
+        "env/minimap2.yaml"
+    shell:
+        "minimap2 -d {output} {input}"
+
+
+rule multiqc:
+    input:
+        merged_fastq = expand(rules.merge.output.merged_fastq,barcode=BARCODE)
+    output:
+        multiqc_results = directory(resultpath+"QC_ANALYSIS/MULTIQC/")
+    params:
+        path = resultpath+"MERGED/"
+    conda:
+        "env/fastqc.yaml"
+    shell:
+        """
+        #rm -r {output.multiqc_results} 
+        multiqc {params.path} -o {output.multiqc_results} 
+        """
+
 rule trimming:
     message:
         "Filtering fastq using NanoFilt."
@@ -72,13 +110,72 @@ rule trimming:
     conda:
         "env/nanofilt.yaml"
     shell:
-        "NanoFilt --quality 10 --length 1500 --maxlength 3500 {input} > {output} "
+        "NanoFilt --quality 10 --length {trim_min} --maxlength {trim_max} {input} > {output} "
+
+rule mapp_dehost:
+    input:
+        trimmed_fastq = rules.trimming.output.trimmed_fastq ,
+        ref_file= rules.index_hg19.output.hg19_index
+    output:
+        human_bam = resultpath+"DEHOSTING/{barcode}_human.bam"
+    conda:
+        "env/minimap2.yaml" 
+    threads: 4
+    shell:
+        """
+        minimap2 -t {threads} -ax splice {input.ref_file} {input.trimmed_fastq}  | samtools view -b > {output.human_bam}
+        """    
+
+rule samtools_flagstat:
+    input:
+        human_bam = rules.mapp_dehost.output.human_bam
+    output:
+        flagstat = resultpath+"QC_ANALYSIS/FLAGSTAT/{barcode}_human.txt"
+    conda:
+        "env/samtools.yaml"
+    shell:
+        "samtools flagstat {input.human_bam}  > {output.flagstat}"
+
+rule viralread_extract:
+    input:
+        human_bam = rules.mapp_dehost.output.human_bam
+    output:
+        viral_bam = resultpath+"VIRAL/{barcode}_viral.bam"
+    conda:
+        "env/samtools.yaml" 
+    shell: 
+        "samtools view -b -f 4 {input.human_bam} > {output.viral_bam} "   
+
+rule bamtofastq:
+    input:
+        viral_bam = rules.viralread_extract.output.viral_bam 
+    output:
+        viral_fastq = resultpath + 'VIRAL/{barcode}_viral.fastq',
+    conda:
+        "env/bedtools.yaml"
+    shell:
+        """
+        bedtools bamtofastq  -i {input.viral_bam} -fq {output.viral_fastq} 
+        """
+
+rule fastqc:
+    input:
+        viral_fastq = rules.bamtofastq.output.viral_fastq
+    output:
+        fastqc_results = directory(resultpath+"QC_ANALYSIS/FASTQC/{barcode}/")
+    conda:
+        "env/fastqc.yaml"
+    shell:
+        """
+        #rm -r {output.fastqc_results} #prevent fastqc to fail du to an already existing directory
+        fastqc --outdir {output.fastqc_results} -f fastq {input.viral_fastq}
+        """
 
 rule converting:
     message:
         "Converting fastq==>fasta using seqkt for blastn research"
     input:
-        trimmed_fastq = rules.trimming.output.trimmed_fastq
+        viral_fastq = rules.bamtofastq.output.viral_fastq
     output:
         converted_fastq = resultpath+"FASTA/{barcode}.fasta" 
     conda:
@@ -159,15 +256,66 @@ rule extract_read_from_merge:
         "filtrate read from majoritary reference using seqkit."
     input:
         read_list = rules.blastn_analysis.output.read_list,
-        trim_fastq = rules.trimming.output.trimmed_fastq
+        viral_fastq = rules.bamtofastq.output.viral_fastq
     output:
         merged_filtered = resultpath+"FILTERED/{barcode}_bestref.fastq" 
     conda:
         "env/seqkit.yaml"          
     shell:
         """
-        seqkit grep --pattern-file {input.read_list} {input.trim_fastq} > {output}
+        seqkit grep --pattern-file {input.read_list} {input.viral_fastq} > {output}
         """           
+
+rule converting_filtered:
+    message:
+        "Converting fastq==>fasta using seqkt for blastn research"
+    input:
+        merged_filtered = rules.extract_read_from_merge.output.merged_filtered ,
+    output:
+        converted_fastq = temp(resultpath+"METRIC/{barcode}_readseq.fasta") ,
+        converted_fastq_temp = temp(resultpath+"METRIC/{barcode}_filtered.fasta") ,
+    conda:
+        "env/seqtk.yaml"        
+    shell:
+        """
+        seqtk seq -A {input.merged_filtered} > {output.converted_fastq_temp}
+        sed '/^>/d' {output.converted_fastq_temp} > {output.converted_fastq}
+        """  
+
+rule compute_metrics_R:
+    input:
+        converted_fastq = rules.converting_filtered.output.converted_fastq ,
+        best_ref = rules.blastn_analysis.output.best_ref ,
+        split_ref_path = rules.split_reference.output.ref_rep ,
+    output:
+        metric = temp(resultpath+"QC_ANALYSIS/METRICS/{barcode}.tsv")
+    conda:
+        "env/Renv.yaml"   
+    shell:
+        """
+        bestref=`cat {input.best_ref}`
+        Rscript script/read_metrics.R {input.converted_fastq} {wildcards.barcode} $bestref {output.metric}
+        """    
+
+rule concat_metrics:
+    input:
+        metric = expand(rules.compute_metrics_R.output.metric,barcode=BARCODE)
+    output:
+        metric_sum = resultpath+"QC_ANALYSIS/METRICS/metric_summary.tsv"
+    run:    
+        listfile=glob.glob(resultpath + "QC_ANALYSIS/METRICS/*.tsv")
+        sumfile=open(resultpath+"QC_ANALYSIS/METRICS/metric_summary.tsv",'w')
+        sumfile.write("SAMPLE\tREFERENCE\tNB_READ\tMEAN\tMEDIAN\n")
+        for file in listfile:
+            readfile=open(file,'r')
+            for line in readfile:
+                sumfile.write(line+"\n")
+            readfile.close()
+        sumfile.close()
+        
+
+
+
 
 rule alignemnt:
     message:
@@ -199,7 +347,26 @@ rule sort_index:
         """
         samtools sort {input.bam} > {output.sorted_bam}
         samtools index {output.sorted_bam}
-        """        
+        """   
+
+rule alignqc:
+    input:
+        split_ref_path = rules.split_reference.output.ref_rep ,
+        sorted_bam = rules.sort_index.output.sorted_bam ,
+        best_ref = rules.blastn_analysis.output.best_ref ,
+    output:
+        alignqc_results = directory(resultpath+"QC_ANALYSIS/ALIGNQC/{barcode}/")
+    conda:
+        "env/alignqc.yaml"
+    shell:
+        """
+        rm -r {output.alignqc_results} #prevent alignqc to fail du to an already existing directory
+        bestref=`cat {input.best_ref}`
+        alignqc analyze {input.sorted_bam} -g {input.split_ref_path}${{bestref}}.fasta \
+            --no_transcriptome  --output_folder {output.alignqc_results}
+        """
+
+
 rule coverage:
     message:
         "compute coverage from bam using bedtools."
