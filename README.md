@@ -26,7 +26,7 @@ For each barcode, here is the global workflow:
 
 # workflow dag
 
-![image info](https://github.com/Stygiophobic/VIRiONT/tree/master/documents/workflow.png)
+![image info](./documents/workflow.png)
 
 # Requirements & Tools
 
