@@ -5,3 +5,5 @@ Report_Analysis.txt
 medaka_output/*
 med_consensus/*
 nohup.out
+ref/hg19.fa
+ref/hg19.mmi
