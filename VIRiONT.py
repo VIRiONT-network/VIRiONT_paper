@@ -43,12 +43,13 @@ rule pipeline_ending:
         #sorted_bam = expand(resultpath+"BAM/{barcode}_sorted.bam" ,barcode=BARCODE),
         #coverage = expand(resultpath+"COVERAGE/{barcode}.cov" ,barcode=BARCODE), 
         cov_plot = resultpath+"COVERAGE/cov_plot.pdf" ,
-        fasta_cons = expand(resultpath+"CONS_PERL/{barcode}_cons.fasta",barcode=BARCODE), 
+        fasta_cons = expand(resultpath+"CONSENSUS/{barcode}_cons.fasta",barcode=BARCODE), 
         #QC
         metric_sum = resultpath+"QC_ANALYSIS/POST-ASSIGN_METRICS/metric_summary.tsv",
         metric_sum_dehost = resultpath+"QC_ANALYSIS/DEHOSTING/metric_summary.tsv" ,
         fastqc_results = expand(resultpath+"QC_ANALYSIS/FASTQ_RAW/{barcode}/",barcode=BARCODE), 
         flagstat = expand(resultpath+"QC_ANALYSIS/DEHOSTING/{barcode}_human.txt",barcode=BARCODE), 
+
 
 rule merge:
     message:
@@ -205,7 +206,6 @@ rule split_reference:
         ref_file= refpath
     output:
         ref_rep=directory(resultpath+"REFSEQ/")
-        #ref_rep=resultpath+"REFSEQ/"
     shell:
         "script/split_reference.py {input} {output} "
 
@@ -232,7 +232,7 @@ rule blastn_ref:
         fasta_file = rules.converting.output.converted_fastq,
         database = rules.make_db.output.database ,
     output:
-        R_data = resultpath+"BLASTN_RESULT/{barcode}_fmt.txt" 
+        R_data = resultpath+"BLASTN_ANALYSIS/{barcode}_fmt.txt" 
     threads: 4
     params:
         database_path = resultpath+"DB/"+database_name    
@@ -410,8 +410,6 @@ rule bam_mpileup:
         best_ref = rules.blastn_analysis.output.best_ref ,
     output:
         vcf = resultpath+"VCF/{barcode}_sammpileup.vcf"
-    threads:6
-    resources: mem_gb= 22  
     conda:
         "env/samtools.yaml"  
     shell:
@@ -424,7 +422,7 @@ rule script_varcaller:
     input:
         vcf = rules.bam_mpileup.output.vcf
     output:
-        fasta_cons = resultpath+"CONS_PERL/{barcode}_cons.fasta"
+        fasta_cons = resultpath+"CONSENSUS/{barcode}_cons.fasta"
     shell:
         """
         perl script/pathogen_varcaller_MINION.PL {input} 0.5 {output} 
