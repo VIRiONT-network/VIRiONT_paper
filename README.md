@@ -1,4 +1,4 @@
-# MinION_HBV
+# VIRiONT Pipeline
 
 # Quick presentation
 
