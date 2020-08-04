@@ -25,7 +25,7 @@ for BC in barcode_list:
     BARCODE.append(barcode)
 
 #final output
-rule all:
+rule pipeline_ending:
     input:
         #merged_file = expand(resultpath+'MERGED/{barcode}_merged.fastq',barcode=BARCODE),
         #trimmed_file = expand(resultpath+'TRIMMED/{barcode}_trimmed.fastq',barcode=BARCODE),
@@ -45,11 +45,10 @@ rule all:
         cov_plot = resultpath+"COVERAGE/cov_plot.pdf" ,
         fasta_cons = expand(resultpath+"CONS_PERL/{barcode}_cons.fasta",barcode=BARCODE), 
         #QC
-        metric_sum = resultpath+"QC_ANALYSIS/METRICS/metric_summary.tsv",
-        flagstat = expand(resultpath+"QC_ANALYSIS/FLAGSTAT/{barcode}_human.txt",barcode=BARCODE), 
-        #alignqc_results = expand(resultpath+"QC_ANALYSIS/ALIGNQC/{barcode}/",barcode=BARCODE), 
-        #fastqc_results = expand(resultpath+"QC_ANALYSIS/FASTQC/{barcode}/",barcode=BARCODE), 
-        #multiqc_results = expand(resultpath+"QC_ANALYSIS/MULTIQC/",barcode=BARCODE), 
+        metric_sum = resultpath+"QC_ANALYSIS/POST-ASSIGN_METRICS/metric_summary.tsv",
+        metric_sum_dehost = resultpath+"QC_ANALYSIS/DEHOSTING/metric_summary.tsv" ,
+        fastqc_results = expand(resultpath+"QC_ANALYSIS/FASTQ_RAW/{barcode}/",barcode=BARCODE), 
+        flagstat = expand(resultpath+"QC_ANALYSIS/DEHOSTING/{barcode}_human.txt",barcode=BARCODE), 
 
 rule merge:
     message:
@@ -63,6 +62,18 @@ rule merge:
     shell: 
         """
         cat {params.path}{wildcards.barcode}/* > {output}
+        """
+
+rule fastqc:
+    input:
+        viral_fastq = rules.merge.output.merged_fastq
+    output:
+        fastqc_results = directory(resultpath+"QC_ANALYSIS/FASTQ_RAW/{barcode}/")
+    conda:
+        "env/fastqc.yaml"
+    shell:
+        """
+        fastqc --outdir {output.fastqc_results} -f fastq {input.viral_fastq}
         """
 
 rule get_hg19:
@@ -85,22 +96,6 @@ rule index_hg19:
     shell:
         "minimap2 -d {output} {input}"
 
-
-rule multiqc:
-    input:
-        merged_fastq = expand(rules.merge.output.merged_fastq,barcode=BARCODE)
-    output:
-        multiqc_results = directory(resultpath+"QC_ANALYSIS/MULTIQC/")
-    params:
-        path = resultpath+"MERGED/"
-    conda:
-        "env/fastqc.yaml"
-    shell:
-        """
-        #rm -r {output.multiqc_results} 
-        multiqc {params.path} -o {output.multiqc_results} 
-        """
-
 rule trimming:
     message:
         "Filtering fastq using NanoFilt."
@@ -118,7 +113,7 @@ rule mapp_dehost:
         trimmed_fastq = rules.trimming.output.trimmed_fastq ,
         ref_file= rules.index_hg19.output.hg19_index
     output:
-        human_bam = resultpath+"DEHOSTING/{barcode}_human.bam"
+        human_bam = temp(resultpath+"DEHOSTING/{barcode}_human.bam")
     conda:
         "env/minimap2.yaml" 
     threads: 4
@@ -131,60 +126,77 @@ rule samtools_flagstat:
     input:
         human_bam = rules.mapp_dehost.output.human_bam
     output:
-        flagstat = resultpath+"QC_ANALYSIS/FLAGSTAT/{barcode}_human.txt"
+        flagstat = resultpath+"QC_ANALYSIS/DEHOSTING/{barcode}_human.txt"
     conda:
         "env/samtools.yaml"
     shell:
         "samtools flagstat {input.human_bam}  > {output.flagstat}"
 
-rule viralread_extract:
+rule nonhuman_extract:
     input:
         human_bam = rules.mapp_dehost.output.human_bam
     output:
-        viral_bam = resultpath+"VIRAL/{barcode}_viral.bam"
+        nonhuman_bam = resultpath+"NONHUMAN/{barcode}_nonhuman.bam"
     conda:
         "env/samtools.yaml" 
     shell: 
-        "samtools view -b -f 4 {input.human_bam} > {output.viral_bam} "   
+        "samtools view -b -f 4 {input.human_bam} > {output.nonhuman_bam} "   
 
 rule bamtofastq:
     input:
-        viral_bam = rules.viralread_extract.output.viral_bam 
+        nonhuman_bam = rules.nonhuman_extract.output.nonhuman_bam 
     output:
-        viral_fastq = resultpath + 'VIRAL/{barcode}_viral.fastq',
+        nonhuman_fastq = resultpath + 'NONHUMAN/{barcode}_nonhuman.fastq',
     conda:
         "env/bedtools.yaml"
     shell:
         """
-        bedtools bamtofastq  -i {input.viral_bam} -fq {output.viral_fastq} 
-        """
-
-rule fastqc:
-    input:
-        viral_fastq = rules.bamtofastq.output.viral_fastq
-    output:
-        fastqc_results = directory(resultpath+"QC_ANALYSIS/FASTQC/{barcode}/")
-    conda:
-        "env/fastqc.yaml"
-    shell:
-        """
-        #rm -r {output.fastqc_results} #prevent fastqc to fail du to an already existing directory
-        fastqc --outdir {output.fastqc_results} -f fastq {input.viral_fastq}
+        bedtools bamtofastq  -i {input.nonhuman_bam} -fq {output.nonhuman_fastq} 
         """
 
 rule converting:
     message:
         "Converting fastq==>fasta using seqkt for blastn research"
     input:
-        viral_fastq = rules.bamtofastq.output.viral_fastq
+        nonhuman_fastq = rules.bamtofastq.output.nonhuman_fastq
     output:
-        converted_fastq = resultpath+"FASTA/{barcode}.fasta" 
+        converted_fastq = temp(resultpath+"FASTA/{barcode}.fasta" ),
+        converted_fastq_temp = temp(resultpath+"FASTA/{barcode}_temp.fasta" )
+ 
     conda:
         "env/seqtk.yaml"        
     shell:
         """
-        seqtk seq -A {input} > {output}
+        seqtk seq -A {input.nonhuman_fastq} > {output.converted_fastq}
+        sed '/^>/d' {output.converted_fastq} > {output.converted_fastq_temp}
         """    
+
+rule compute_metrics_dehosting_R:
+    input:
+        fasta_file = rules.converting.output.converted_fastq_temp,
+    output:
+        metric = temp(resultpath+"QC_ANALYSIS/DEHOSTING/{barcode}.tsv")
+    conda:
+        "env/Renv.yaml"   
+    shell:
+        """
+        Rscript script/read_metrics.R {input.fasta_file} {wildcards.barcode} "DEHOSTED" {output.metric}
+        """
+rule concat_metrics:
+    input:
+        metric = expand(rules.compute_metrics_dehosting_R.output.metric,barcode=BARCODE)
+    output:
+        metric_sum = resultpath+"QC_ANALYSIS/DEHOSTING/metric_summary.tsv"
+    run:    
+        listfile=glob.glob(resultpath + "QC_ANALYSIS/DEHOSTING/*.tsv")
+        sumfile=open(resultpath+"QC_ANALYSIS/DEHOSTING/metric_summary.tsv",'w')
+        sumfile.write("SAMPLE\tSTATUS\tNB_READ\tMEAN\tMEDIAN\n")
+        for file in listfile:
+            readfile=open(file,'r')
+            for line in readfile:
+                sumfile.write(line+"\n")
+            readfile.close()
+        sumfile.close()
 
 rule split_reference:
     message:
@@ -257,14 +269,14 @@ rule extract_read_from_merge:
         "filtrate read from majoritary reference using seqkit."
     input:
         read_list = rules.blastn_analysis.output.read_list,
-        viral_fastq = rules.bamtofastq.output.viral_fastq
+        nonhuman_fastq = rules.bamtofastq.output.nonhuman_fastq
     output:
         merged_filtered = resultpath+"FILTERED/{barcode}_bestref.fastq" 
     conda:
         "env/seqkit.yaml"          
     shell:
         """
-        seqkit grep --pattern-file {input.read_list} {input.viral_fastq} > {output}
+        seqkit grep --pattern-file {input.read_list} {input.nonhuman_fastq} > {output}
         """           
 
 rule converting_filtered:
@@ -289,7 +301,7 @@ rule compute_metrics_R:
         best_ref = rules.blastn_analysis.output.best_ref ,
         split_ref_path = rules.split_reference.output.ref_rep ,
     output:
-        metric = temp(resultpath+"QC_ANALYSIS/METRICS/{barcode}.tsv")
+        metric = temp(resultpath+"QC_ANALYSIS/POST-ASSIGN_METRICS/{barcode}.tsv")
     conda:
         "env/Renv.yaml"   
     shell:
@@ -298,14 +310,14 @@ rule compute_metrics_R:
         Rscript script/read_metrics.R {input.converted_fastq} {wildcards.barcode} $bestref {output.metric}
         """    
 
-rule concat_metrics:
+rule concat_metrics_dehost:
     input:
         metric = expand(rules.compute_metrics_R.output.metric,barcode=BARCODE)
     output:
-        metric_sum = resultpath+"QC_ANALYSIS/METRICS/metric_summary.tsv"
+        metric_sum = resultpath+"QC_ANALYSIS/POST-ASSIGN_METRICS/metric_summary.tsv"
     run:    
-        listfile=glob.glob(resultpath + "QC_ANALYSIS/METRICS/*.tsv")
-        sumfile=open(resultpath+"QC_ANALYSIS/METRICS/metric_summary.tsv",'w')
+        listfile=glob.glob(resultpath + "QC_ANALYSIS/POST-ASSIGN_METRICS/*.tsv")
+        sumfile=open(resultpath+"QC_ANALYSIS/POST-ASSIGN_METRICS/metric_summary.tsv",'w')
         sumfile.write("SAMPLE\tREFERENCE\tNB_READ\tMEAN\tMEDIAN\n")
         for file in listfile:
             readfile=open(file,'r')
@@ -380,7 +392,7 @@ rule plot_cov:
     input:
         cov = expand(rules.coverage.output.coverage,barcode=BARCODE)
     output:
-        cov_sum = resultpath+"COVERAGE/cov_sum.cov" ,
+        cov_sum = temp(resultpath+"COVERAGE/cov_sum.cov") ,
         cov_plot = resultpath+"COVERAGE/cov_plot.pdf"
     conda:
         "env/Renv.yaml" 
