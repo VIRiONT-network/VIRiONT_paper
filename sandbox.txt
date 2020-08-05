@@ -64,6 +64,19 @@ nohup ./nanopolish variants \
     --outfile /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/testBC02_nanopolish.vcf &
 
 #test medaka
+
+cd /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/RESULT_HBV_PARIS/
+medaka consensus BAM/barcode01_sorted.bam prout.hdf
+medaka variant REFSEQ/P3_GTA.fasta prout.hdf kakakipu.vcf.tmp
+medaka tools annotate kakakipu.vcf.tmp REFSEQ/P3_GTA.fasta BAM/barcode01_sorted.bam zizipoilu.vcf
+bcftools query \
+    --format '%CHROM\t%POS\t%REF\t%FIRST_ALT\t%QUAL\t%TYPE\t%DP\n'\
+    -i 'QUAL>30 && DP>75' zizipoilu.vcf > zizi_filtered.vcf
+
+
+
+
+
 #medaka:
 medaka_variant -f /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/save_result/RESULT_HDV/REFSEQ/P4_HDV5.fasta \
      -i /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/save_result/RESULT_HDV/BAM/barcode03_sorted.bam \

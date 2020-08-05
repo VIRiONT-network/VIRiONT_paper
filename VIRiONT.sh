@@ -47,17 +47,17 @@ snakemake -s VIRiONT.py \
 chmod 777 -R $data_loc
 ################################################################################
 
-snakemake -s VIRiONT.py --rulegraph \
-    --use-conda \
-    --core $thread_number \
-    --resources mem_mb=$mem_cost \
-    --config PathToData=$data_loc \
-             PathToResult=$result_loc \
-             PathToReference=$ref_loc \
-             AnalysisTable=$ref_table \
-             Lmin=$min_length \
-             Lmax=$max_length \
-             headcrop=$head \
-             tailcrop=$tail \
-             variantfrequency=$Vfreq | dot -Tpng > documents/workflow.png
+#snakemake -s VIRiONT.py --rulegraph \
+#    --use-conda \
+#    --core $thread_number \
+#    --resources mem_mb=$mem_cost \
+#    --config PathToData=$data_loc \
+#             PathToResult=$result_loc \
+#             PathToReference=$ref_loc \
+#             AnalysisTable=$ref_table \
+#             Lmin=$min_length \
+#             Lmax=$max_length \
+#             headcrop=$head \
+#             tailcrop=$tail \
+#             variantfrequency=$Vfreq | dot -Tpng > documents/workflow.png
 

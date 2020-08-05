@@ -19,7 +19,7 @@ barcoding/barcode02/*.fastq
 barcoding/barcode24/*.fastq
 ``` 
 For each barcode, here is the global workflow:  
-**Step1** => merging (in several fastq in the barcode rep) and trimming fastq using given parameters. 
+**Step1** => merging (in several fastq in the barcode rep) and trimming fastq using given parameters.  
 **Step2** => removing human read from fastq files.  
 **Step3** => blastn research on each reference for get the best maching reference.     
 **Step4** => build consensus sequence on the best matching reference.    
@@ -32,6 +32,16 @@ For each barcode, here is the global workflow:
 
 Instalation and use of the tools required for VIRiONT is fully managed by conda and snakemake.  
 Environment files and software versions are available in the *env/* folder.  
+
+*filtering and trimming* : NanoFilt v2.7.1. See => https://github.com/wdecoster/nanofilt <=  
+*dehosting and mapping* : minimap2 v2.17. See => https://github.com/lh3/minimap2 <=  
+*bam management* : samtools v1.3.1. See => http://samtools.github.io/ <=  
+*blastn analysis* : blast v2.5.0. See => https://blast.ncbi.nlm.nih.gov/Blast.cgi?PAGE_TYPE=BlastDocs&DOC_TYPE=Download <=  
+*fastq and fasta management* : seqkit v0.12.1. See => https://github.com/shenwei356/seqkit <=  
+*fastq and fasta management* : seqtk v1.3. See => https://github.com/lh3/seqtk <= 
+*coverage computation* : bedtools v2.29.2. See => https://github.com/arq5x/bedtools <=   
+*statistics and plotting* : R v4.0.2. See => https://cran.r-project.org/ <=  
+
 
 # Quick using steps
 
