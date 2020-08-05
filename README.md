@@ -41,7 +41,7 @@ Step 2 : make sure snakemake is installed on your computer.
 Snakemake 3.9.0 version or above is required for conda interaction.  
 You can quikly create a new conda environment with the latest available snakemake version by using this command(currently the 5.20.1 version):  
 ```
-conda create -c bioconda -c conda-forge -n VIRiONT snakemake-minimal
+conda create -c bioconda -c conda-forge -n VIRiONT_env snakemake-minimal
 ```
 Step 3 : download latest version of the pipeline using git command:  
 ```
@@ -49,7 +49,7 @@ git clone https://github.com/Stygiophobic/VIRiONT.git
 ```
 Step 4 : launch the pipeline by executing:  
 ```
-conda activate snakemake
+conda activate VIRiONT_env
 cd VIRiONT
 nohup ./launch_snakefile.sh > Report_Analysis.txt & 
 ```
