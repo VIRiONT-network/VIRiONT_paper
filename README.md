@@ -38,7 +38,7 @@ Environment files and software versions are available in the *env/* folder.
 *bam management* : samtools v1.3.1. See => http://samtools.github.io/ <=  
 *blastn analysis* : blast v2.5.0. See => https://blast.ncbi.nlm.nih.gov/Blast.cgi?PAGE_TYPE=BlastDocs&DOC_TYPE=Download <=  
 *fastq and fasta management* : seqkit v0.12.1. See => https://github.com/shenwei356/seqkit <=  
-*fastq and fasta management* : seqtk v1.3. See => https://github.com/lh3/seqtk <= 
+*fastq and fasta management* : seqtk v1.3. See => https://github.com/lh3/seqtk <=   
 *coverage computation* : bedtools v2.29.2. See => https://github.com/arq5x/bedtools <=   
 *statistics and plotting* : R v4.0.2. See => https://cran.r-project.org/ <=  
 
