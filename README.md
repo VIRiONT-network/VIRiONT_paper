@@ -2,7 +2,7 @@
 
 # Quick presentation
 
-VIRiONT pipeline is designed to analyse data from amplicon approach based Nanopore sequencing. It was primary developed to analyse data from hepatitis B virus (HBV) complete genome long read sequencing after an amplification step. It was secondary extended to hepatitis delta virus (HDV). However, this pipeline can be adapted for other viruses and pathogens as well. You just need a custom reference dataset specific to the pathogen and to the amplicons design used prior your ONT sequencing.
+VIRiONT pipeline is designed to analyse data from amplicon approach based Nanopore sequencing. It was primary developed to analyse data from hepatitis B virus (HBV) complete genome long read sequencing after an amplification step. It was secondary extended to hepatitis delta virus (HDV). However, this pipeline can be adapted for other viruses and pathogens as well. You just need a custom reference dataset specific to the pathogen and to the amplicon design used prior your ONT sequencing.
 
 This pipeline was primary designed for studying HBV full genome long read sequencing (about 3kb in lenght). If you plan to use this workflow on shorter or longer amplicons, be sure to chose and adapt parameters used for the filtering step, namely *rule trimming* in VIRiONT.sh file.
 
