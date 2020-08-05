@@ -12,6 +12,11 @@ PathToReference : "ref/HBV_REF.fasta"
 #Analysis table used by R for blastn analysis
 AnalysisTable : "analysis/table_analysis.csv"
 
-#Params tools
+##Params tools
+#Nanofilt
 Lmin : 1500
 Lmax : 3500
+headcrop : 0
+tailcrop : 0
+#perl
+variantfrequency : 0.5
