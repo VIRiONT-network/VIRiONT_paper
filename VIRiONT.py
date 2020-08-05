@@ -10,6 +10,9 @@ refpath=config['PathToReference']
 analysis_table=config['AnalysisTable']
 trim_min=config['Lmin']
 trim_max=config['Lmax']
+trim_head=config['headcrop']
+trim_tail=config['tailcrop']
+variant_frequency=config['variantfrequency']
 
 #get database name
 filename=os.path.basename(refpath)
@@ -49,7 +52,6 @@ rule pipeline_ending:
         metric_sum_dehost = resultpath+"QC_ANALYSIS/DEHOSTING/metric_summary.tsv" ,
         fastqc_results = expand(resultpath+"QC_ANALYSIS/FASTQ_RAW/{barcode}/",barcode=BARCODE), 
         flagstat = expand(resultpath+"QC_ANALYSIS/DEHOSTING/{barcode}_human.txt",barcode=BARCODE), 
-
 
 rule merge:
     message:
@@ -270,6 +272,7 @@ rule extract_read_from_merge:
     input:
         read_list = rules.blastn_analysis.output.read_list,
         nonhuman_fastq = rules.bamtofastq.output.nonhuman_fastq
+       
     output:
         merged_filtered = resultpath+"FILTERED/{barcode}_bestref.fastq" 
     conda:
@@ -340,8 +343,9 @@ rule alignemnt:
     shell:
         """
         bestref=`cat {input.best_ref}`
-        minimap2 -ax splice {input.split_ref_path}${{bestref}}.fasta {input.merged_filtered} > {output.spliced_bam}
+        minimap2 -ax splice {input.split_ref_path}${{bestref}}.fasta {input.merged_filtered} | samtools view -b > {output.spliced_bam} 
         """  
+
 rule sort_index:
     message:
         "sorting and indexing bam files using samtools."
@@ -386,8 +390,9 @@ rule coverage:
         "env/bedtools.yaml"          
     shell:
         """
-        bedtools genomecov -ibam {input} -d | sed 's/$/ {wildcards.barcode}/' > {output.coverage} 
+        bedtools genomecov -ibam {input} -d -split | sed 's/$/ {wildcards.barcode}/' > {output.coverage} 
         """
+
 rule plot_cov:
     input:
         cov = expand(rules.coverage.output.coverage,barcode=BARCODE)
@@ -401,7 +406,6 @@ rule plot_cov:
         cat {input.cov} > {output.cov_sum}
         Rscript script/plot_cov.R {output.cov_sum} {output.cov_plot}
         """
-
 
 rule bam_mpileup:
     input:
@@ -425,5 +429,5 @@ rule script_varcaller:
         fasta_cons = resultpath+"CONSENSUS/{barcode}_cons.fasta"
     shell:
         """
-        perl script/pathogen_varcaller_MINION.PL {input} 0.5 {output} 
+        perl script/pathogen_varcaller_MINION.PL {input} {variant_frequency} {output} 
         """     
