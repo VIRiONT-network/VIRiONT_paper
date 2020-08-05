@@ -15,6 +15,12 @@ ref_table="analysis/table_analysis.csv" # Table location containing reference li
 min_length=1500
 #max length for read filtering
 max_length=3500
+#Remove N nucleotide for primer 5'
+head=0
+#Remove N nucleotide for primer 3'
+tail=0
+#minor variant frequency
+Vfreq=0.5 
 #core number
 thread_number=8 #Define number of threads to use for the analysis
 #memory cost in mb
@@ -35,7 +41,10 @@ snakemake -s VIRiONT.py \
              PathToReference=$ref_loc \
              AnalysisTable=$ref_table \
              Lmin=$min_length \
-             Lmax=$max_length
+             Lmax=$max_length \
+             headcrop=$head \
+             tailcrop=$tail \
+             variantfrequency=$Vfreq
 
 chmod 777 -R $data_loc
 ################################################################################
@@ -52,12 +61,12 @@ chmod 777 -R $data_loc
 #             AnalysisTable=$ref_table
 
 #Generate workflow dag
-snakemake -s VIRiONT.py --rulegraph \
-    --resources mem_mb=$mem_cost \
-    --config PathToData=$data_loc \
-             PathToResult=$result_loc \
-             PathToReference=$ref_loc \
-             AnalysisTable=$ref_table \
-             Lmin=$min_length \
-             Lmax=$max_length \
-             AnalysisTable=$ref_table | dot -Tpng > documents/workflow.png
+#snakemake -s VIRiONT.py --rulegraph \
+#    --resources mem_mb=$mem_cost \
+#    --config PathToData=$data_loc \
+#             PathToResult=$result_loc \
+#             PathToReference=$ref_loc \
+#             AnalysisTable=$ref_table \
+#             Lmin=$min_length \
+#             Lmax=$max_length \
+#             AnalysisTable=$ref_table | dot -Tpng > documents/workflow.png
