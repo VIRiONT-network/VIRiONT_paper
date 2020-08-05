@@ -45,13 +45,13 @@ rule pipeline_ending:
         #spliced_bam = expand(resultpath+"BAM/{barcode}_spliced.bam"  ,barcode=BARCODE),
         #sorted_bam = expand(resultpath+"BAM/{barcode}_sorted.bam" ,barcode=BARCODE),
         #coverage = expand(resultpath+"COVERAGE/{barcode}.cov" ,barcode=BARCODE), 
-        cov_plot = resultpath+"COVERAGE/cov_plot.pdf" ,
-        fasta_cons = expand(resultpath+"CONSENSUS/{barcode}_cons.fasta",barcode=BARCODE), 
+        cov_plot = resultpath+"07_COVERAGE/cov_plot.pdf" ,
+        fasta_cons = expand(resultpath+"09_CONSENSUS/{barcode}_cons.fasta",barcode=BARCODE), 
         #QC
-        metric_sum = resultpath+"QC_ANALYSIS/POST-ASSIGN_METRICS/metric_summary.tsv",
-        metric_sum_dehost = resultpath+"QC_ANALYSIS/DEHOSTING/metric_summary.tsv" ,
-        fastqc_results = expand(resultpath+"QC_ANALYSIS/FASTQ_RAW/{barcode}/",barcode=BARCODE), 
-        flagstat = expand(resultpath+"QC_ANALYSIS/DEHOSTING/{barcode}_human.txt",barcode=BARCODE), 
+        metric_sum = resultpath+"10_QC_ANALYSIS/POST-ASSIGN_METRICS/metric_summary.tsv",
+        metric_sum_dehost = resultpath+"10_QC_ANALYSIS/DEHOSTING/metric_summary.tsv" ,
+        fastqc_results = expand(resultpath+"10_QC_ANALYSIS/FASTQ_RAW/{barcode}/",barcode=BARCODE), 
+        flagstat = expand(resultpath+"10_QC_ANALYSIS/DEHOSTING/{barcode}_human.txt",barcode=BARCODE), 
 
 rule merge:
     message:
@@ -59,7 +59,7 @@ rule merge:
     input: 
         lambda wildcards: expand(datapath+"{barcode}", barcode=BARCODE)
     output: 
-        merged_fastq = resultpath+"MERGED/{barcode}_merged.fastq"  
+        merged_fastq = resultpath+"01_MERGED/{barcode}_merged.fastq"  
     params:
         path = datapath
     shell: 
@@ -71,7 +71,7 @@ rule fastqc:
     input:
         viral_fastq = rules.merge.output.merged_fastq
     output:
-        fastqc_results = directory(resultpath+"QC_ANALYSIS/FASTQ_RAW/{barcode}/")
+        fastqc_results = directory(resultpath+"10_QC_ANALYSIS/FASTQ_RAW/{barcode}/")
     conda:
         "env/fastqc.yaml"
     shell:
@@ -105,7 +105,7 @@ rule trimming:
     input:
         merged_fastq = rules.merge.output.merged_fastq
     output:
-        trimmed_fastq = resultpath+"TRIMMED/{barcode}_trimmed.fastq"
+        trimmed_fastq = resultpath+"02_TRIMMED/{barcode}_trimmed.fastq"
     conda:
         "env/nanofilt.yaml"
     shell:
@@ -116,7 +116,7 @@ rule mapp_dehost:
         trimmed_fastq = rules.trimming.output.trimmed_fastq ,
         ref_file= rules.index_hg19.output.hg19_index
     output:
-        human_bam = temp(resultpath+"DEHOSTING/{barcode}_human.bam")
+        human_bam = temp(resultpath+"03_DEHOSTING/{barcode}_human.bam")
     conda:
         "env/minimap2.yaml" 
     threads: 4
@@ -129,7 +129,7 @@ rule samtools_flagstat:
     input:
         human_bam = rules.mapp_dehost.output.human_bam
     output:
-        flagstat = resultpath+"QC_ANALYSIS/DEHOSTING/{barcode}_human.txt"
+        flagstat = resultpath+"10_QC_ANALYSIS/DEHOSTING/{barcode}_human.txt"
     conda:
         "env/samtools.yaml"
     shell:
@@ -139,7 +139,7 @@ rule nonhuman_extract:
     input:
         human_bam = rules.mapp_dehost.output.human_bam
     output:
-        nonhuman_bam = resultpath+"NONHUMAN/{barcode}_nonhuman.bam"
+        nonhuman_bam = resultpath+"03_DEHOSTING/{barcode}_nonhuman.bam"
     conda:
         "env/samtools.yaml" 
     shell: 
@@ -149,7 +149,7 @@ rule bamtofastq:
     input:
         nonhuman_bam = rules.nonhuman_extract.output.nonhuman_bam 
     output:
-        nonhuman_fastq = resultpath + 'NONHUMAN/{barcode}_nonhuman.fastq',
+        nonhuman_fastq = resultpath + '03_DEHOSTING/{barcode}_nonhuman.fastq',
     conda:
         "env/bedtools.yaml"
     shell:
@@ -178,7 +178,7 @@ rule compute_metrics_dehosting_R:
     input:
         fasta_file = rules.converting.output.converted_fastq_temp,
     output:
-        metric = temp(resultpath+"QC_ANALYSIS/DEHOSTING/{barcode}.tsv")
+        metric = temp(resultpath+"10_QC_ANALYSIS/DEHOSTING/{barcode}.tsv")
     conda:
         "env/Renv.yaml"   
     shell:
@@ -189,10 +189,10 @@ rule concat_metrics:
     input:
         metric = expand(rules.compute_metrics_dehosting_R.output.metric,barcode=BARCODE)
     output:
-        metric_sum = resultpath+"QC_ANALYSIS/DEHOSTING/metric_summary.tsv"
+        metric_sum = resultpath+"10_QC_ANALYSIS/DEHOSTING/metric_summary.tsv"
     run:    
-        listfile=glob.glob(resultpath + "QC_ANALYSIS/DEHOSTING/*.tsv")
-        sumfile=open(resultpath+"QC_ANALYSIS/DEHOSTING/metric_summary.tsv",'w')
+        listfile=glob.glob(resultpath + "10_QC_ANALYSIS/DEHOSTING/*.tsv")
+        sumfile=open(resultpath+"10_QC_ANALYSIS/DEHOSTING/metric_summary.tsv",'w')
         sumfile.write("SAMPLE\tSTATUS\tNB_READ\tMEAN\tMEDIAN\n")
         for file in listfile:
             readfile=open(file,'r')
@@ -207,7 +207,7 @@ rule split_reference:
     input:
         ref_file= refpath
     output:
-        ref_rep=directory(resultpath+"REFSEQ/")
+        ref_rep=directory(resultpath+"00_SUPDATA/REFSEQ/")
     shell:
         "script/split_reference.py {input} {output} "
 
@@ -217,9 +217,9 @@ rule make_db:
     input:
         ref_fasta_file = refpath 
     output:
-        database = expand(resultpath+"DB/"+database_name+".{ext}", ext=["nhr", "nin", "nsq"])
+        database = expand(resultpath+"00_SUPDATA/DB/"+database_name+".{ext}", ext=["nhr", "nin", "nsq"])
     params:
-        database_path = resultpath+"DB/"+database_name
+        database_path = resultpath+"00_SUPDATA/DB/"+database_name
     conda:
         "env/blast.yaml"                  
     shell:
@@ -234,10 +234,10 @@ rule blastn_ref:
         fasta_file = rules.converting.output.converted_fastq,
         database = rules.make_db.output.database ,
     output:
-        R_data = resultpath+"BLASTN_ANALYSIS/{barcode}_fmt.txt" 
+        R_data = resultpath+"04_BLASTN_ANALYSIS/{barcode}_fmt.txt" 
     threads: 4
     params:
-        database_path = resultpath+"DB/"+database_name    
+        database_path = resultpath+"00_SUPDATA/DB/"+database_name    
     conda:
         "env/blast.yaml"               
     shell:
@@ -252,9 +252,9 @@ rule blastn_analysis:
         R_data = rules.blastn_ref.output.R_data ,
         AnalTable = analysis_table ,
     output:
-        read_list = resultpath+"BLASTN_ANALYSIS/{barcode}_read-list.txt",
-        best_ref = resultpath+"BLASTN_ANALYSIS/{barcode}_bestref.txt",
-        ref_count_plot = resultpath+"BLASTN_ANALYSIS/{barcode}_barplot.png"
+        read_list = resultpath+"04_BLASTN_ANALYSIS/{barcode}_read-list.txt",
+        best_ref = resultpath+"04_BLASTN_ANALYSIS/{barcode}_bestref.txt",
+        ref_count_plot = resultpath+"04_BLASTN_ANALYSIS/{barcode}_barplot.png"
     params:
         analyse=database_name
     conda:
@@ -274,7 +274,7 @@ rule extract_read_from_merge:
         nonhuman_fastq = rules.bamtofastq.output.nonhuman_fastq
        
     output:
-        merged_filtered = resultpath+"FILTERED/{barcode}_bestref.fastq" 
+        merged_filtered = resultpath+"05_BESTREF_FILTERED/{barcode}_bestref.fastq" 
     conda:
         "env/seqkit.yaml"          
     shell:
@@ -304,7 +304,7 @@ rule compute_metrics_R:
         best_ref = rules.blastn_analysis.output.best_ref ,
         split_ref_path = rules.split_reference.output.ref_rep ,
     output:
-        metric = temp(resultpath+"QC_ANALYSIS/POST-ASSIGN_METRICS/{barcode}.tsv")
+        metric = temp(resultpath+"10_QC_ANALYSIS/POST-ASSIGN_METRICS/{barcode}.tsv")
     conda:
         "env/Renv.yaml"   
     shell:
@@ -317,10 +317,10 @@ rule concat_metrics_dehost:
     input:
         metric = expand(rules.compute_metrics_R.output.metric,barcode=BARCODE)
     output:
-        metric_sum = resultpath+"QC_ANALYSIS/POST-ASSIGN_METRICS/metric_summary.tsv"
+        metric_sum = resultpath+"10_QC_ANALYSIS/POST-ASSIGN_METRICS/metric_summary.tsv"
     run:    
-        listfile=glob.glob(resultpath + "QC_ANALYSIS/POST-ASSIGN_METRICS/*.tsv")
-        sumfile=open(resultpath+"QC_ANALYSIS/POST-ASSIGN_METRICS/metric_summary.tsv",'w')
+        listfile=glob.glob(resultpath + "10_QC_ANALYSIS/POST-ASSIGN_METRICS/*.tsv")
+        sumfile=open(resultpath+"10_QC_ANALYSIS/POST-ASSIGN_METRICS/metric_summary.tsv",'w')
         sumfile.write("SAMPLE\tREFERENCE\tNB_READ\tMEAN\tMEDIAN\n")
         for file in listfile:
             readfile=open(file,'r')
@@ -337,7 +337,7 @@ rule alignemnt:
         merged_filtered = rules.extract_read_from_merge.output.merged_filtered ,
         split_ref_path = rules.split_reference.output.ref_rep ,
     output:
-        spliced_bam = resultpath+"BAM/{barcode}_spliced.bam"  
+        spliced_bam = temp(resultpath+"06_BAM/{barcode}_spliced.bam" )
     conda:
         "env/minimap2.yaml"              
     shell:
@@ -352,8 +352,8 @@ rule sort_index:
     input:
         bam = rules.alignemnt.output.spliced_bam ,
     output:
-        sorted_bam = resultpath+"BAM/{barcode}_sorted.bam" ,
-        index_file = resultpath+"BAM/{barcode}_sorted.bam.bai"
+        sorted_bam = resultpath+"06_BAM/{barcode}_sorted.bam" ,
+        index_file = resultpath+"06_BAM/{barcode}_sorted.bam.bai"
     conda:
         "env/samtools.yaml"          
     shell:
@@ -362,30 +362,13 @@ rule sort_index:
         samtools index {output.sorted_bam}
         """   
 
-rule alignqc:
-    input:
-        split_ref_path = rules.split_reference.output.ref_rep ,
-        sorted_bam = rules.sort_index.output.sorted_bam ,
-        best_ref = rules.blastn_analysis.output.best_ref ,
-    output:
-        alignqc_results = directory(resultpath+"QC_ANALYSIS/ALIGNQC/{barcode}/")
-    conda:
-        "env/alignqc.yaml"
-    shell:
-        """
-        rm -r {output.alignqc_results} #prevent alignqc to fail du to an already existing directory
-        bestref=`cat {input.best_ref}`
-        alignqc analyze {input.sorted_bam} -g {input.split_ref_path}${{bestref}}.fasta \
-            --no_transcriptome  --output_folder {output.alignqc_results}
-        """
-
 rule coverage:
     message:
         "compute coverage from bam using bedtools."
     input:
         sorted_bam = rules.sort_index.output.sorted_bam
     output:
-        coverage = resultpath+"COVERAGE/{barcode}.cov" 
+        coverage = resultpath+"07_COVERAGE/{barcode}.cov" 
     conda:
         "env/bedtools.yaml"          
     shell:
@@ -397,8 +380,8 @@ rule plot_cov:
     input:
         cov = expand(rules.coverage.output.coverage,barcode=BARCODE)
     output:
-        cov_sum = temp(resultpath+"COVERAGE/cov_sum.cov") ,
-        cov_plot = resultpath+"COVERAGE/cov_plot.pdf"
+        cov_sum = temp(resultpath+"07_COVERAGE/cov_sum.cov") ,
+        cov_plot = resultpath+"07_COVERAGE/cov_plot.pdf"
     conda:
         "env/Renv.yaml" 
     shell:
@@ -413,7 +396,7 @@ rule bam_mpileup:
         sorted_bam = rules.sort_index.output.sorted_bam ,
         best_ref = rules.blastn_analysis.output.best_ref ,
     output:
-        vcf = resultpath+"VCF/{barcode}_sammpileup.vcf"
+        vcf = resultpath+"08_VCF/{barcode}_sammpileup.vcf"
     conda:
         "env/samtools.yaml"  
     shell:
@@ -426,7 +409,7 @@ rule script_varcaller:
     input:
         vcf = rules.bam_mpileup.output.vcf
     output:
-        fasta_cons = resultpath+"CONSENSUS/{barcode}_cons.fasta"
+        fasta_cons = resultpath+"09_CONSENSUS/{barcode}_cons.fasta"
     shell:
         """
         perl script/pathogen_varcaller_MINION.PL {input} {variant_frequency} {output} 

@@ -27,11 +27,9 @@ thread_number=8 #Define number of threads to use for the analysis
 mem_cost=32000 #Define number of threads to use for the analysis
 ################################################################################
 
-
 ################################################################################
 #########################    LAUNCH SNAKEMAKE    ###############################
 ################################################################################
-#mkdir -p $data_loc
 snakemake -s VIRiONT.py \
     --use-conda \
     --core $thread_number \
@@ -49,24 +47,17 @@ snakemake -s VIRiONT.py \
 chmod 777 -R $data_loc
 ################################################################################
 
+snakemake -s VIRiONT.py --rulegraph \
+    --use-conda \
+    --core $thread_number \
+    --resources mem_mb=$mem_cost \
+    --config PathToData=$data_loc \
+             PathToResult=$result_loc \
+             PathToReference=$ref_loc \
+             AnalysisTable=$ref_table \
+             Lmin=$min_length \
+             Lmax=$max_length \
+             headcrop=$head \
+             tailcrop=$tail \
+             variantfrequency=$Vfreq | dot -Tpng > documents/workflow.png
 
-#If troubles with lock:
-#snakemake -s viralION.py \
-#    --unlock \
-#    --use-conda \
-#    --core $thread_number \
-#   --config PathToData=$data_loc \
-#             PathToResult=$result_loc \
-#             PathToReference=$ref_loc \
-#             AnalysisTable=$ref_table
-
-#Generate workflow dag
-#snakemake -s VIRiONT.py --rulegraph \
-#    --resources mem_mb=$mem_cost \
-#    --config PathToData=$data_loc \
-#             PathToResult=$result_loc \
-#             PathToReference=$ref_loc \
-#             AnalysisTable=$ref_table \
-#             Lmin=$min_length \
-#             Lmax=$max_length \
-#             AnalysisTable=$ref_table | dot -Tpng > documents/workflow.png
