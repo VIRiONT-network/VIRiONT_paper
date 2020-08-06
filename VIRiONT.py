@@ -52,6 +52,11 @@ rule pipeline_ending:
         metric_sum_dehost = resultpath+"10_QC_ANALYSIS/DEHOSTING/metric_summary.tsv" ,
         fastqc_results = expand(resultpath+"10_QC_ANALYSIS/FASTQ_RAW/{barcode}/",barcode=BARCODE), 
         flagstat = expand(resultpath+"10_QC_ANALYSIS/DEHOSTING/{barcode}_human.txt",barcode=BARCODE), 
+        #test
+        raw_read = expand(resultpath+"10_QC_ANALYSIS/{barcode}_rawseq.txt",barcode=BARCODE), 
+        trimmed_read = expand(resultpath+"10_QC_ANALYSIS/{barcode}_trimmseq.txt",barcode=BARCODE), 
+        dehosted_read = expand(resultpath+"10_QC_ANALYSIS/{barcode}_dehostseq.txt",barcode=BARCODE), 
+        bestmatched_read = expand(resultpath+"10_QC_ANALYSIS/{barcode}_BMseq.txt",barcode=BARCODE), 
 
 rule merging_fastq:
     message:
@@ -337,13 +342,13 @@ rule filtered_fastq_alignemnt:
         merged_filtered = rules.extract_matching_read.output.merged_filtered ,
         split_ref_path = rules.split_reference.output.ref_rep ,
     output:
-        spliced_bam = temp(resultpath+"06_BAM/{barcode}_sorted.bam" )
+        spliced_bam = resultpath+"06_BAM/{barcode}_sorted.bam" 
     conda:
         "env/minimap2.yaml"              
     shell:
         """
         bestref=`cat {input.best_ref}`
-        minimap2 -ax splice {input.split_ref_path}${{bestref}}.fasta {input.merged_filtered} | samtools sort -b > {output.spliced_bam}
+        minimap2 -ax splice {input.split_ref_path}${{bestref}}.fasta {input.merged_filtered} | samtools sort > {output.spliced_bam}
         samtools index {output.spliced_bam}  
         """  
 
@@ -389,6 +394,26 @@ rule variant_calling:
         bestref=`cat {input.best_ref}`
         samtools mpileup -d 20000 -f {input.split_ref_path}${{bestref}}.fasta {input.sorted_bam} -Q 7 > {output}
         """             
+
+rule read_metric:
+    input:
+        raw_fastq = rules.merging_fastq.output.merged_fastq ,
+        trimmed_fastq = rules.trimming_fastq.output.trimmed_fastq ,
+        dehosted_fastq = rules.converting_bam_fastq.output.nonhuman_fastq ,
+        bestmatched_fastq = rules.extract_matching_read.output.merged_filtered ,
+    output:
+        raw_read = resultpath+"10_QC_ANALYSIS/{barcode}_rawseq.txt",
+        trimmed_read = resultpath+"10_QC_ANALYSIS/{barcode}_trimmseq.txt",
+        dehosted_read = resultpath+"10_QC_ANALYSIS/{barcode}_dehostseq.txt",
+        bestmatched_read = resultpath+"10_QC_ANALYSIS/{barcode}_BMseq.txt",
+    shell:
+        """
+        awk '(NR%4==2)' {input.raw_fastq} > {output.raw_read}
+        awk '(NR%4==2)' {input.trimmed_fastq} > {output.trimmed_read}
+        awk '(NR%4==2)' {input.dehosted_fastq} > {output.dehosted_read}
+        awk '(NR%4==2)' {input.bestmatched_fastq} > {output.bestmatched_read}
+        """
+
 
 rule generate_consensus:
     input:
