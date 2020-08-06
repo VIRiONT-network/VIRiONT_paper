@@ -272,9 +272,9 @@ rule compute_coverage:
         """
 
 rule plot_coverage:
-    input:
     message:
         "Plot coverage summary."
+    input:
         cov = expand(rules.compute_coverage.output.coverage,barcode=BARCODE)
     output:
         cov_sum = temp(resultpath+"07_COVERAGE/cov_sum.cov") ,
