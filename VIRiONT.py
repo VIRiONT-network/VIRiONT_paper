@@ -53,10 +53,8 @@ rule pipeline_ending:
         fastqc_results = expand(resultpath+"10_QC_ANALYSIS/FASTQ_RAW/{barcode}/",barcode=BARCODE), 
         flagstat = expand(resultpath+"10_QC_ANALYSIS/DEHOSTING/{barcode}_human.txt",barcode=BARCODE), 
         #test
-        raw_read = expand(resultpath+"10_QC_ANALYSIS/{barcode}_rawseq.txt",barcode=BARCODE), 
-        trimmed_read = expand(resultpath+"10_QC_ANALYSIS/{barcode}_trimmseq.txt",barcode=BARCODE), 
-        dehosted_read = expand(resultpath+"10_QC_ANALYSIS/{barcode}_dehostseq.txt",barcode=BARCODE), 
-        bestmatched_read = expand(resultpath+"10_QC_ANALYSIS/{barcode}_BMseq.txt",barcode=BARCODE), 
+        summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_table.csv"
+
 
 rule merging_fastq:
     message:
@@ -402,18 +400,39 @@ rule read_metric:
         dehosted_fastq = rules.converting_bam_fastq.output.nonhuman_fastq ,
         bestmatched_fastq = rules.extract_matching_read.output.merged_filtered ,
     output:
-        raw_read = resultpath+"10_QC_ANALYSIS/{barcode}_rawseq.txt",
-        trimmed_read = resultpath+"10_QC_ANALYSIS/{barcode}_trimmseq.txt",
-        dehosted_read = resultpath+"10_QC_ANALYSIS/{barcode}_dehostseq.txt",
-        bestmatched_read = resultpath+"10_QC_ANALYSIS/{barcode}_BMseq.txt",
+        raw_read = temp(resultpath+"10_QC_ANALYSIS/{barcode}_rawseq.txt"),
+        trimmed_read = temp(resultpath+"10_QC_ANALYSIS/{barcode}_trimmseq.txt"),
+        dehosted_read = temp(resultpath+"10_QC_ANALYSIS/{barcode}_dehostseq.txt"),
+        bestmatched_read = temp(resultpath+"10_QC_ANALYSIS/{barcode}_BMseq.txt"),
     shell:
         """
-        awk '(NR%4==2)' {input.raw_fastq} > {output.raw_read}
-        awk '(NR%4==2)' {input.trimmed_fastq} > {output.trimmed_read}
-        awk '(NR%4==2)' {input.dehosted_fastq} > {output.dehosted_read}
-        awk '(NR%4==2)' {input.bestmatched_fastq} > {output.bestmatched_read}
+        awk '(NR%4==2)' {input.raw_fastq} | sed 's/$/ {wildcards.barcode}/' > {output.raw_read}
+        awk '(NR%4==2)' {input.trimmed_fastq} | sed 's/$/ {wildcards.barcode}/'> {output.trimmed_read}
+        awk '(NR%4==2)' {input.dehosted_fastq} | sed 's/$/ {wildcards.barcode}/'> {output.dehosted_read}
+        awk '(NR%4==2)' {input.bestmatched_fastq} | sed 's/$/ {wildcards.barcode}/' > {output.bestmatched_read}
         """
 
+rule summarize_metric:
+    input:
+        raw_read = expand(rules.read_metric.output.raw_read ,barcode=BARCODE),
+        trimmed_read = expand(rules.read_metric.output.trimmed_read ,barcode=BARCODE),
+        dehosted_read = expand(rules.read_metric.output.dehosted_read ,barcode=BARCODE),
+        bestmatched_read = expand(rules.read_metric.output.bestmatched_read ,barcode=BARCODE),
+    output:
+        raw_all = temp(resultpath+"10_QC_ANALYSIS/CAT_rawseq.tab"),
+        trimmed_all = temp(resultpath+"10_QC_ANALYSIS/CAT_trimmseq.tab"),
+        dehosted_all = temp(resultpath+"10_QC_ANALYSIS/CAT_dehostseq.tab"),
+        bestmatched_all = temp(resultpath+"10_QC_ANALYSIS/CAT_BMseq.tab"),
+        summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_table.csv"
+    shell:
+        """
+        cat {input.raw_read} > {output.raw_all}
+        cat {input.trimmed_read} > {output.trimmed_all}
+        cat {input.dehosted_read} > {output.dehosted_all}
+        cat {input.bestmatched_read} > {output.bestmatched_all}
+        Rscript script/summarize_metric.R {output.raw_all} {output.trimmed_all} \
+             {output.dehosted_all} {output.bestmatched_all} {output.summ_table}
+        """
 
 rule generate_consensus:
     input:
