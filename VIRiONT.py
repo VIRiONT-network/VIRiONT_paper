@@ -48,11 +48,6 @@ rule pipeline_ending:
         cov_plot = resultpath+"07_COVERAGE/cov_plot.pdf" ,
         fasta_cons = expand(resultpath+"09_CONSENSUS/{barcode}_cons.fasta",barcode=BARCODE), 
         #QC
-        metric_sum = resultpath+"10_QC_ANALYSIS/POST-ASSIGN_METRICS/metric_summary.tsv",
-        metric_sum_dehost = resultpath+"10_QC_ANALYSIS/DEHOSTING/metric_summary.tsv" ,
-        fastqc_results = expand(resultpath+"10_QC_ANALYSIS/FASTQ_RAW/{barcode}/",barcode=BARCODE), 
-        flagstat = expand(resultpath+"10_QC_ANALYSIS/DEHOSTING/{barcode}_human.txt",barcode=BARCODE), 
-        #test
         summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_table.csv"
 
 
@@ -70,21 +65,9 @@ rule merging_fastq:
         cat {params.path}{wildcards.barcode}/* > {output}
         """
 
-rule fastqc_rawdata:
-    input:
-        viral_fastq = rules.merging_fastq.output.merged_fastq
-    output:
-        fastqc_results = directory(resultpath+"10_QC_ANALYSIS/FASTQ_RAW/{barcode}/")
-    conda:
-        "env/fastqc.yaml"
-    shell:
-        """
-        fastqc --outdir {output.fastqc_results} -f fastq {input.viral_fastq}
-        """
-
 rule get_hg19:
     message:
-        "download if necessary the hg19 reference genome."
+        "download if necessary the hg19 reference genome. Executed once per VIRiONT installation."
     output:
         hg19_ref =  "ref/hg19.fa"
     shell:
@@ -93,6 +76,8 @@ rule get_hg19:
         gunzip ref/hg19.fa.gz       
         """
 rule index_hg19:
+    message:
+        "Indexing the hg19 reference genome for a quicker dehosting. Executed once per VIRiONT installation."
     input:
         hg19 = rules.get_hg19.output.hg19_ref
     output:
@@ -104,7 +89,7 @@ rule index_hg19:
 
 rule trimming_fastq:
     message:
-        "Filtering fastq using NanoFilt."
+        "Filtering and trimming fastq using NanoFilt using input parameters."
     input:
         merged_fastq = rules.merging_fastq.output.merged_fastq
     output:
@@ -115,6 +100,8 @@ rule trimming_fastq:
         "NanoFilt --quality 10 --length {trim_min} --maxlength {trim_max} {input} > {output} "
 
 rule hg19_dehosting:
+    message:
+        "Aligning fastq on human genome for identifying host reads."
     input:
         trimmed_fastq = rules.trimming_fastq.output.trimmed_fastq ,
         ref_file= rules.index_hg19.output.hg19_index
@@ -128,17 +115,9 @@ rule hg19_dehosting:
         minimap2 -t {threads} -ax splice {input.ref_file} {input.trimmed_fastq}  | samtools view -b > {output.human_bam}
         """    
 
-rule deshosting_stat:
-    input:
-        human_bam = rules.hg19_dehosting.output.human_bam
-    output:
-        flagstat = resultpath+"10_QC_ANALYSIS/DEHOSTING/{barcode}_human.txt"
-    conda:
-        "env/samtools.yaml"
-    shell:
-        "samtools flagstat {input.human_bam}  > {output.flagstat}"
-
 rule nonhuman_read_extract:
+    message:
+        "Extract unaligned reads."
     input:
         human_bam = rules.hg19_dehosting.output.human_bam
     output:
@@ -149,6 +128,8 @@ rule nonhuman_read_extract:
         "samtools view -b -f 4 {input.human_bam} > {output.nonhuman_bam} "   
 
 rule converting_bam_fastq:
+    message:
+        "Convert bam to fastq."
     input:
         nonhuman_bam = rules.nonhuman_read_extract.output.nonhuman_bam 
     output:
@@ -162,7 +143,7 @@ rule converting_bam_fastq:
 
 rule converting_fastq_fasta:
     message:
-        "Converting fastq==>fasta using seqkt for blastn research"
+        "Converting fastq==>fasta for blastn research"
     input:
         nonhuman_fastq = rules.converting_bam_fastq.output.nonhuman_fastq
     output:
@@ -176,33 +157,6 @@ rule converting_fastq_fasta:
         seqtk seq -A {input.nonhuman_fastq} > {output.converted_fastq}
         sed '/^>/d' {output.converted_fastq} > {output.converted_fastq_temp}
         """    
-
-rule compute_metrics_dehosting_R:
-    input:
-        fasta_file = rules.converting_fastq_fasta.output.converted_fastq_temp,
-    output:
-        metric = temp(resultpath+"10_QC_ANALYSIS/DEHOSTING/{barcode}.tsv")
-    conda:
-        "env/Renv.yaml"   
-    shell:
-        """
-        Rscript script/read_metrics.R {input.fasta_file} {wildcards.barcode} "DEHOSTED" {output.metric}
-        """
-rule concat_metrics_dehosting:
-    input:
-        metric = expand(rules.compute_metrics_dehosting_R.output.metric,barcode=BARCODE)
-    output:
-        metric_sum = resultpath+"10_QC_ANALYSIS/DEHOSTING/metric_summary.tsv"
-    run:    
-        listfile=glob.glob(resultpath + "10_QC_ANALYSIS/DEHOSTING/*.tsv")
-        sumfile=open(resultpath+"10_QC_ANALYSIS/DEHOSTING/metric_summary.tsv",'w')
-        sumfile.write("SAMPLE\tSTATUS\tNB_READ\tMEAN\tMEDIAN\n")
-        for file in listfile:
-            readfile=open(file,'r')
-            for line in readfile:
-                sumfile.write(line+"\n")
-            readfile.close()
-        sumfile.close()
 
 rule split_reference:
     message:
@@ -232,7 +186,7 @@ rule make_db:
 
 rule blastn_ref:
     message:
-        "Blasting {barcode}.fasta on the custom database."
+        "Blasting  on the custom database."
     input: 
         fasta_file = rules.converting_fastq_fasta.output.converted_fastq,
         database = rules.make_db.output.database ,
@@ -271,7 +225,7 @@ rule blastn_analysis:
 
 rule extract_matching_read:
     message:
-        "filtrate read from majoritary reference using seqkit."
+        "filtrate read from majoritary reference."
     input:
         read_list = rules.blastn_analysis.output.read_list,
         nonhuman_fastq = rules.converting_bam_fastq.output.nonhuman_fastq
@@ -285,53 +239,6 @@ rule extract_matching_read:
         seqkit grep --pattern-file {input.read_list} {input.nonhuman_fastq} > {output}
         """           
 
-rule converting_fastq_filtered_fasta_filtered:
-    message:
-        "Converting fastq==>fasta using seqkt for blastn research"
-    input:
-        merged_filtered = rules.extract_matching_read.output.merged_filtered ,
-    output:
-        converted_fastq = temp(resultpath+"METRIC/{barcode}_readseq.fasta") ,
-        converted_fastq_temp = temp(resultpath+"METRIC/{barcode}_filtered.fasta") ,
-    conda:
-        "env/seqtk.yaml"        
-    shell:
-        """
-        seqtk seq -A {input.merged_filtered} > {output.converted_fastq_temp}
-        sed '/^>/d' {output.converted_fastq_temp} > {output.converted_fastq}
-        """  
-
-rule compute_metrics_postfiltering_R:
-    input:
-        converted_fastq = rules.converting_fastq_filtered_fasta_filtered.output.converted_fastq ,
-        best_ref = rules.blastn_analysis.output.best_ref ,
-        split_ref_path = rules.split_reference.output.ref_rep ,
-    output:
-        metric = temp(resultpath+"10_QC_ANALYSIS/POST-ASSIGN_METRICS/{barcode}.tsv")
-    conda:
-        "env/Renv.yaml"   
-    shell:
-        """
-        bestref=`cat {input.best_ref}`
-        Rscript script/read_metrics.R {input.converted_fastq} {wildcards.barcode} $bestref {output.metric}
-        """    
-
-rule concat_metrics_postfiltering:
-    input:
-        metric = expand(rules.compute_metrics_postfiltering_R.output.metric,barcode=BARCODE)
-    output:
-        metric_sum = resultpath+"10_QC_ANALYSIS/POST-ASSIGN_METRICS/metric_summary.tsv"
-    run:    
-        listfile=glob.glob(resultpath + "10_QC_ANALYSIS/POST-ASSIGN_METRICS/*.tsv")
-        sumfile=open(resultpath+"10_QC_ANALYSIS/POST-ASSIGN_METRICS/metric_summary.tsv",'w')
-        sumfile.write("SAMPLE\tREFERENCE\tNB_READ\tMEAN\tMEDIAN\n")
-        for file in listfile:
-            readfile=open(file,'r')
-            for line in readfile:
-                sumfile.write(line+"\n")
-            readfile.close()
-        sumfile.close()
-        
 rule filtered_fastq_alignemnt:
     message:
         "alignment on the majoritary reference using minimap2."
@@ -366,6 +273,8 @@ rule compute_coverage:
 
 rule plot_coverage:
     input:
+    message:
+        "Plot coverage summary."
         cov = expand(rules.compute_coverage.output.coverage,barcode=BARCODE)
     output:
         cov_sum = temp(resultpath+"07_COVERAGE/cov_sum.cov") ,
@@ -379,6 +288,8 @@ rule plot_coverage:
         """
 
 rule variant_calling:
+    message:
+        "Variant calling on reference aligned bam."
     input:
         split_ref_path = rules.split_reference.output.ref_rep ,
         sorted_bam = rules.filtered_fastq_alignemnt.output.spliced_bam ,
@@ -394,6 +305,8 @@ rule variant_calling:
         """             
 
 rule read_metric:
+    message:
+        "Extract read sequence from fastq for metric computation."
     input:
         raw_fastq = rules.merging_fastq.output.merged_fastq ,
         trimmed_fastq = rules.trimming_fastq.output.trimmed_fastq ,
@@ -413,6 +326,8 @@ rule read_metric:
         """
 
 rule summarize_metric:
+    message:
+        "Compute metric and write the summary table."
     input:
         raw_read = expand(rules.read_metric.output.raw_read ,barcode=BARCODE),
         trimmed_read = expand(rules.read_metric.output.trimmed_read ,barcode=BARCODE),
@@ -435,6 +350,8 @@ rule summarize_metric:
         """
 
 rule generate_consensus:
+    message:
+        "Generate consensus sequence from variant calling file."
     input:
         vcf = rules.variant_calling.output.vcf
     output:

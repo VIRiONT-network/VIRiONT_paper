@@ -7,3 +7,4 @@ med_consensus/*
 nohup.out
 ref/hg19.fa
 ref/hg19.mmi
+ref/hg19.fa.gz

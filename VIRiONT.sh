@@ -22,7 +22,7 @@ tail=0
 #minor variant frequency
 Vfreq=0.5 
 #core number
-thread_number=8 #Define number of threads to use for the analysis
+thread_number=10 #Define number of threads to use for the analysis
 #memory cost in mb
 mem_cost=32000 #Define number of threads to use for the analysis
 ################################################################################
