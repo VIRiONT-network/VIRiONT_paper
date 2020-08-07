@@ -4,13 +4,17 @@
 ##########################    CONFIGURATION    #################################
 ################################################################################
 #fastq location
-data_loc="/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/DATA_HBV_PARIS/" #Define path where the "barcode*" are stored
+#data_loc="/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/DATA_HBV_PARIS/" #Define path where the "barcode*" are stored
+data_loc="/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/POLIO/DATA/"
 #output location
-result_loc="/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/RESULT_HBV_PARIS/" #Define path where storing analysis results 
+#result_loc="/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/RESULT_HBV_PARIS/" #Define path where storing analysis results 
+result_loc="/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/POLIO/RESULTS/"
 #custom reference file to use
-ref_loc="ref/HBV_REF.fasta" # Path to fastafile containing genotype sequences for blast
+#ref_loc="ref/HBV_REF.fasta" # Path to fastafile containing genotype sequences for blast
+ref_loc="/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/POLIO/POLIO.fasta"
 #metadata location for the custom reference
-ref_table="analysis/table_analysis.csv" # Table location containing reference list for the blastn analysis. /!\ Column must correspond to the fasta headers in ref_loc.
+#ref_table="analysis/table_analysis.csv" # Table location containing reference list for the blastn analysis. /!\ Column must correspond to the fasta headers in ref_loc.
+ref_table="/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/POLIO/table_analysis.csv" 
 #min length for read filtering
 min_length=1500
 #max length for read filtering
