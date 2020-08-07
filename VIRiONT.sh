@@ -19,6 +19,8 @@ max_length=3500
 head=0
 #Remove N nucleotide for primer 3'
 tail=0
+#Multi infection threshold cutoff in percent. cutoff= Blastref/majoritaryBlastref*100
+MI_cutoff=10
 #minor variant frequency
 Vfreq=0.5 
 #core number
@@ -35,7 +37,7 @@ snakemake -s VIRiONT.py \
     --core $thread_number \
     --resources mem_mb=$mem_cost \
     --config PathToData=$data_loc \
-             PathToResult=$result_loc \
+             PathToResult=${result_loc}"OLD_VERSION/" \
              PathToReference=$ref_loc \
              AnalysisTable=$ref_table \
              Lmin=$min_length \
@@ -43,6 +45,32 @@ snakemake -s VIRiONT.py \
              headcrop=$head \
              tailcrop=$tail \
              variantfrequency=$Vfreq
+
+
+snakemake -s VIRiONT_MI1.py \
+    --use-conda \
+    --core $thread_number \
+    --resources mem_mb=$mem_cost \
+    --config PathToData=$data_loc \
+             PathToResult=${result_loc}"MI_VERSION/" \
+             PathToReference=$ref_loc \
+             AnalysisTable=$ref_table \
+             Lmin=$min_length \
+             Lmax=$max_length \
+             headcrop=$head \
+             tailcrop=$tail \
+             multiinf=$MI_cutoff \
+             variantfrequency=$Vfreq
+
+snakemake -s VIRiONT_MI2.py \
+    --use-conda \
+    --core $thread_number \
+    --resources mem_mb=$mem_cost \
+    --config PathToData=$data_loc \
+             PathToResult=${result_loc}"MI_VERSION/" \
+             PathToReference=$ref_loc \
+             variantfrequency=$Vfreq 
+
 
 chmod 777 -R $data_loc
 ################################################################################
