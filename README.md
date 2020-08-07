@@ -57,9 +57,10 @@ conda -h
 conda -V
 ``` 
 Snakemake 3.9.0 version or above is required for conda interaction.  
-You can quikly create a new conda environment with the latest available snakemake version by using this command(currently the 5.20.1 version):  
+pandas python library is also required for dataframe reading.
+You can quikly create a new conda environment with the pandas library and the latest available snakemake version by using this command(currently the 5.20.1 version):  
 ```
-conda create -c bioconda -c conda-forge -n VIRiONT_env snakemake-minimal
+conda create -c bioconda -c conda-forge -n VIRiONT_env snakemake-minimal pandas
 ```
 Step 3 : download latest version of the pipeline using git command:  
 ```
