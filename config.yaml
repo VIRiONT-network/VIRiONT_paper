@@ -12,6 +12,9 @@ PathToReference : "ref/HBV_REF.fasta"
 #Analysis table used by R for blastn analysis
 AnalysisTable : "analysis/table_analysis.csv"
 
+#MULTI INFECTION THRESHOLD
+multiinf : 10
+
 ##Params tools
 #Nanofilt
 Lmin : 1500
