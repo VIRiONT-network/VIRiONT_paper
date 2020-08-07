@@ -47,7 +47,7 @@ png(filename = output_plot)
 ggplot(data=hist_data, aes(x=Genotype, y=count_Geno)) +
   geom_bar(stat="identity",color="black",fill="steelblue")+
   geom_text(aes(label=count_Geno), vjust=1.6, color="white", size=3.5)+
-  ggtitle("Genotype repartition per read")+
+  ggtitle("Reference repartition per read")+
   labs(y= "read count", x = "genotype")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 dev.off()

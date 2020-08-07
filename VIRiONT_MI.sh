@@ -41,7 +41,7 @@ snakemake -s VIRiONT_MI1.py \
     --core $thread_number \
     --resources mem_mb=$mem_cost \
     --config PathToData=$data_loc \
-             PathToResult=${result_loc}"MI_DETECTION/" \
+             PathToResult=${result_loc}"MI_VERSION/" \
              PathToReference=$ref_loc \
              AnalysisTable=$ref_table \
              Lmin=$min_length \
