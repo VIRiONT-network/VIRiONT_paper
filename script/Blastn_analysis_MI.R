@@ -65,15 +65,14 @@ multiinf_table<-multiinf_table[,c("sample","Genotype","Ratio_Bestref")]
 write.table(multiinf_table,multiinf_table_name,sep="\t",row.names = F,col.names = F,quote=F)
 
 ############################################################
-hist_data<-subset(hist_data,count_Geno>0) #Subset for plot with plenty ref
-
 hist_data$Ratio_Bestref<-trunc(hist_data$Ratio_Bestref)
+hist_data<-subset(hist_data,count_Geno>0) #Subset for plot with plenty ref
 
 png(filename = output_plot)
 ggplot(data=hist_data, aes(x=Genotype, y=Ratio_Bestref)) +
   geom_bar(stat="identity",color="black",fill="steelblue")+
   geom_text(aes(label=Ratio_Bestref), vjust=-1, color="black", size=4)+
   ggtitle("Reference repartition per read")+
-  labs(y= "ratio reference/best_reference", x = "genotype")+
+  labs(y= "percentage reference/best_reference", x = "reference")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 dev.off()

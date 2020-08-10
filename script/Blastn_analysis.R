@@ -42,13 +42,17 @@ for (ref in reference_list) {
 
 hist_data<-as.data.frame(count_Geno)
 hist_data$Genotype<-label
+hist_data$Ratio_Bestref<-hist_data$count_Geno/max(hist_data$count_Geno)*100
+hist_data$Ratio_Bestref<-trunc(hist_data$Ratio_Bestref)
+
+
 
 png(filename = output_plot)
-ggplot(data=hist_data, aes(x=Genotype, y=count_Geno)) +
+ggplot(data=hist_data, aes(x=Genotype, y=Ratio_Bestref)) +
   geom_bar(stat="identity",color="black",fill="steelblue")+
-  geom_text(aes(label=count_Geno), vjust=1.6, color="white", size=3.5)+
+  geom_text(aes(label=Ratio_Bestref), vjust=-1, color="black", size=4)+
   ggtitle("Reference repartition per read")+
-  labs(y= "read count", x = "genotype")+
+  labs(y= "percentage reference/best_reference", x = "reference")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 dev.off()
 

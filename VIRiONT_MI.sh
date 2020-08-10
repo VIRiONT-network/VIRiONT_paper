@@ -55,7 +55,7 @@ snakemake -s VIRiONT_MI2.py \
     --core $thread_number \
     --resources mem_mb=$mem_cost \
     --config PathToData=$data_loc \
-             PathToResult=${result_loc}"MI_DETECTION/" \
+             PathToResult=${result_loc}"MI_VERSION/" \
              PathToReference=$ref_loc \
              variantfrequency=$Vfreq 
 
