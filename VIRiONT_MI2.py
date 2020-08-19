@@ -6,7 +6,11 @@ import pandas as pd
 configfile : "config.yaml"
 
 datapath=config['PathToData']
+if (datapath[:-1] != "/"):
+	datapath=datapath+"/"
 resultpath=config['PathToResult']
+if (resultpath[:-1] != "/"):
+	resultpath=resultpath+"/"
 refpath=config['PathToReference']
 analysis_table=config['AnalysisTable']
 trim_min=config['Lmin']
