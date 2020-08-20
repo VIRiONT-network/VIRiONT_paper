@@ -209,7 +209,8 @@ rule blastn_analysis:
 		R_data = rules.blastn_ref.output.R_data ,
 		AnalTable = analysis_table ,
 	output:
-		ref_count_plot = resultpath+"04_BLASTN_ANALYSIS/{barcode}_barplot.png",
+		ref_ratio_plot = resultpath+"04_BLASTN_ANALYSIS/{barcode}_ratio_plot.png",
+		ref_count_plot = resultpath+"04_BLASTN_ANALYSIS/{barcode}_count_plot.png",
 		multi_inf_table = temp(resultpath+"04_BLASTN_ANALYSIS/{barcode}_MI.tsv") ,
 		blastn_result = resultpath+"04_BLASTN_ANALYSIS/{barcode}_blastnR.tsv"
 	params:
@@ -221,7 +222,7 @@ rule blastn_analysis:
 		Rscript script/Blastn_analysis_MI.R {input.R_data} \
 			{input.AnalTable} {params.analyse} \
 			{output.blastn_result} {output.ref_count_plot} \
-			{MI_cutoff} {wildcards.barcode} {output.multi_inf_table}
+			{MI_cutoff} {wildcards.barcode} {output.multi_inf_table} {output.ref_count_plot}
 		"""  
 
 rule summ_multiinf:

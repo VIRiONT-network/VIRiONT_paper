@@ -148,7 +148,7 @@ rule compute_coverage:
         "env/bedtools.yaml"          
     shell:
         """
-        bedtools genomecov -ibam {input} -d -split | sed 's/$/\t{wildcards.barcode}\t{wildcards.reference}/' > {output.coverage} 
+        bedtools genomecov -ibam {input} -d -split | sed 's/$/\t{wildcards.barcode}\tMINION/' > {output.coverage} 
         """
 
 rule plot_coverage:
@@ -188,12 +188,14 @@ rule generate_consensus:
     input:
         vcf = rules.variant_calling.output.vcf
     output:
+        fasta_cons_temp = temp(resultpath+"09_CONSENSUS/{barcode}/{reference}_cons_temp.fasta") ,
         fasta_cons = resultpath+"09_CONSENSUS/{barcode}/{reference}_cons.fasta"
     shell:
         """
-        perl script/pathogen_varcaller_MINION.PL {input} {variant_frequency} {output} 
-        """     
-
+        perl script/pathogen_varcaller_MINION.PL {input} {variant_frequency} {output.fasta_cons_temp} 200
+        sed  's/>.*/>{wildcards.barcode}_{wildcards.reference}_cons/' {output.fasta_cons_temp} > {output.fasta_cons}
+        """
+        
 rule read_metric:
     message:
         "Extract read sequence from fastq for metric computation."

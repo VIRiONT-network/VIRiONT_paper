@@ -23,6 +23,8 @@ samplename<-as.character(argv[7])
 
 multiinf_table_name<-as.character(argv[8])
 
+output_plot_count<-as.character(argv[9])
+
 reference_list<-as.character(analysis_table[,which(colnames(analysis_table)==analysis)])
 reference_list<-subset(reference_list,reference_list!="" & !(is.na(reference_list)))
 
@@ -74,5 +76,14 @@ ggplot(data=hist_data, aes(x=Genotype, y=Ratio_Bestref)) +
   geom_text(aes(label=Ratio_Bestref), vjust=-1, color="black", size=4)+
   ggtitle("Reference repartition per read")+
   labs(y= "percentage reference/best_reference", x = "reference")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+dev.off()
+
+png(filename = output_plot_count)
+ggplot(data=hist_data, aes(x=Genotype, y=count_Geno)) +
+  geom_bar(stat="identity",color="black",fill="steelblue")+
+  geom_text(aes(label=Ratio_Bestref), vjust=-1, color="black", size=4)+
+  ggtitle("Read count for each references")+
+  labs(y= "read count", x = "reference")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 dev.off()

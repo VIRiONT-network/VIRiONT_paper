@@ -5,7 +5,11 @@ import glob
 configfile : "config.yaml"
 
 datapath=config['PathToData']
+if (datapath[:-1] != "/"):
+	datapath=datapath+"/"
 resultpath=config['PathToResult']
+if (resultpath[:-1] != "/"):
+	resultpath=resultpath+"/"
 refpath=config['PathToReference']
 analysis_table=config['AnalysisTable']
 trim_min=config['Lmin']
@@ -355,8 +359,10 @@ rule generate_consensus:
     input:
         vcf = rules.variant_calling.output.vcf
     output:
+        fasta_cons_temp = temp(resultpath+"09_CONSENSUS/{barcode}_cons_temp.fasta") ,
         fasta_cons = resultpath+"09_CONSENSUS/{barcode}_cons.fasta"
     shell:
         """
-        perl script/pathogen_varcaller_MINION.PL {input} {variant_frequency} {output} 
-        """     
+        perl script/pathogen_varcaller_MINION.PL {input} {variant_frequency} {output.fasta_cons_temp} 
+        sed  's/>.*/>{wildcards.barcode}_{wildcards.reference}_cons/' {output.fasta_cons_temp} > {output.fasta_cons}
+        """    
