@@ -24,7 +24,7 @@ MI_cutoff=10
 #minor variant frequency
 Vfreq=0.5 
 #core number
-thread_number=10 #Define number of threads to use for the analysis
+thread_number=8 #Define number of threads to use for the analysis
 #memory cost in mb
 mem_cost=32000 #Define number of threads to use for the analysis
 ################################################################################
@@ -37,7 +37,7 @@ snakemake -s VIRiONT_BM.py \
     --core $thread_number \
     --resources mem_mb=$mem_cost \
     --config PathToData=$data_loc \
-             PathToResult=${result_loc}"BEST_MATCHING_ANALYSIS/" \
+             PathToResult=$result_loc \
              PathToReference=$ref_loc \
              AnalysisTable=$ref_table \
              Lmin=$min_length \
@@ -45,8 +45,6 @@ snakemake -s VIRiONT_BM.py \
              headcrop=$head \
              tailcrop=$tail \
              variantfrequency=$Vfreq
-
-chmod 777 -R $data_loc
 ################################################################################
 
 #snakemake -s VIRiONT.py --rulegraph \
