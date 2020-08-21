@@ -5,10 +5,10 @@ import glob
 configfile : "config.yaml"
 
 datapath=config['PathToData']
-if (datapath[:-1] != "/"):
+if (datapath[-1] != "/"):
 	datapath=datapath+"/"
 resultpath=config['PathToResult']
-if (resultpath[:-1] != "/"):
+if (resultpath[-1] != "/"):
 	resultpath=resultpath+"/"
 refpath=config['PathToReference']
 analysis_table=config['AnalysisTable']
@@ -17,6 +17,8 @@ trim_max=config['Lmax']
 trim_head=config['headcrop']
 trim_tail=config['tailcrop']
 variant_frequency=config['variantfrequency']
+MI_cutoff=config['multiinf']
+
 
 #get database name
 filename=os.path.basename(refpath)
@@ -215,7 +217,8 @@ rule blastn_analysis:
     output:
         read_list = resultpath+"04_BLASTN_ANALYSIS/{barcode}_read-list.txt",
         best_ref = resultpath+"04_BLASTN_ANALYSIS/{barcode}_bestref.txt",
-        ref_count_plot = resultpath+"04_BLASTN_ANALYSIS/{barcode}_barplot.png"
+        ref_count_plot = resultpath+"04_BLASTN_ANALYSIS/{barcode}_count_barplot.png",
+        ref_ratio_plot = resultpath+"04_BLASTN_ANALYSIS/{barcode}_ratio_plot.png",
     params:
         analyse=database_name
     conda:
@@ -224,7 +227,8 @@ rule blastn_analysis:
         """
         Rscript script/Blastn_analysis.R {input.R_data} \
             {input.AnalTable} {params.analyse} \
-            {output.read_list} {output.best_ref} {output.ref_count_plot}
+            {output.read_list} {output.best_ref} {output.ref_ratio_plot} \
+            {MI_cutoff} {output.ref_count_plot}
         """  
 
 rule extract_matching_read:
@@ -357,12 +361,15 @@ rule generate_consensus:
     message:
         "Generate consensus sequence from variant calling file."
     input:
-        vcf = rules.variant_calling.output.vcf
+        vcf = rules.variant_calling.output.vcf,
+        read_list = resultpath+"04_BLASTN_ANALYSIS/{barcode}_read-list.txt",
+        best_ref = resultpath+"04_BLASTN_ANALYSIS/{barcode}_bestref.txt",        
     output:
         fasta_cons_temp = temp(resultpath+"09_CONSENSUS/{barcode}_cons_temp.fasta") ,
         fasta_cons = resultpath+"09_CONSENSUS/{barcode}_cons.fasta"
     shell:
         """
+        bestref=`cat {input.best_ref}`
         perl script/pathogen_varcaller_MINION.PL {input} {variant_frequency} {output.fasta_cons_temp} 
-        sed  's/>.*/>{wildcards.barcode}_{wildcards.reference}_cons/' {output.fasta_cons_temp} > {output.fasta_cons}
+        sed  's/>.*/>{wildcards.barcode}_${{bestref}}_VIRiONT/' {output.fasta_cons_temp} > {output.fasta_cons}
         """    
