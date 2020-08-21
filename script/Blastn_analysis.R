@@ -14,6 +14,8 @@ analysis<-as.character(argv[3])
 output_readlist<-as.character(argv[4])
 output_bestref<-as.character(argv[5])
 output_plot<-as.character(argv[6])
+MI_cutoff<-as.numeric(argv[7])
+output_plot_count<-as.character(argv[8])
 
 reference_list<-as.character(analysis_table[,which(colnames(analysis_table)==analysis)])
 reference_list<-subset(reference_list,reference_list!="" & !(is.na(reference_list)))
@@ -46,13 +48,22 @@ hist_data$Ratio_Bestref<-hist_data$count_Geno/max(hist_data$count_Geno)*100
 hist_data$Ratio_Bestref<-trunc(hist_data$Ratio_Bestref)
 
 
-
 png(filename = output_plot)
 ggplot(data=hist_data, aes(x=Genotype, y=Ratio_Bestref)) +
   geom_bar(stat="identity",color="black",fill="steelblue")+
   geom_text(aes(label=Ratio_Bestref), vjust=-1, color="black", size=4)+
   ggtitle("Reference repartition per read")+
   labs(y= "percentage reference/best_reference", x = "reference")+
+  geom_hline(aes(yintercept=MI_cutoff),linetype="dashed")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+dev.off()
+
+png(filename = output_plot_count)
+ggplot(data=hist_data, aes(x=Genotype, y=count_Geno)) +
+  geom_bar(stat="identity",color="black",fill="steelblue")+
+  geom_text(aes(label=count_Geno), vjust=-1, color="black", size=4)+
+  ggtitle("Read count for each references")+
+  labs(y= "read count", x = "reference")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 dev.off()
 
