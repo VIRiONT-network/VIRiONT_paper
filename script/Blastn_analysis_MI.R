@@ -82,7 +82,7 @@ dev.off()
 png(filename = output_plot_count)
 ggplot(data=hist_data, aes(x=Genotype, y=count_Geno)) +
   geom_bar(stat="identity",color="black",fill="steelblue")+
-  geom_text(aes(label=Ratio_Bestref), vjust=-1, color="black", size=4)+
+  geom_text(aes(label=count_Geno), vjust=-1, color="black", size=4)+
   ggtitle("Read count for each references")+
   labs(y= "read count", x = "reference")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
