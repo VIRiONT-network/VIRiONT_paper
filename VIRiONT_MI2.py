@@ -6,10 +6,10 @@ import pandas as pd
 configfile : "config.yaml"
 
 datapath=config['PathToData']
-if (datapath[:-1] != "/"):
+if (datapath[-1] != "/"):
 	datapath=datapath+"/"
 resultpath=config['PathToResult']
-if (resultpath[:-1] != "/"):
+if (resultpath[-1] != "/"):
 	resultpath=resultpath+"/"
 refpath=config['PathToReference']
 analysis_table=config['AnalysisTable']
@@ -193,7 +193,7 @@ rule generate_consensus:
     shell:
         """
         perl script/pathogen_varcaller_MINION.PL {input} {variant_frequency} {output.fasta_cons_temp} 200
-        sed  's/>.*/>{wildcards.barcode}_{wildcards.reference}_cons/' {output.fasta_cons_temp} > {output.fasta_cons}
+        sed  's/>.*/>{wildcards.barcode}_{wildcards.reference}_VIRiONT/' {output.fasta_cons_temp} > {output.fasta_cons}
         """
         
 rule read_metric:
