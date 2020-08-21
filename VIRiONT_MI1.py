@@ -6,10 +6,10 @@ import pandas as pd
 configfile : "config.yaml"
 
 datapath=config['PathToData']
-if (datapath[:-1] != "/"):
+if (datapath[-1] != "/"):
 	datapath=datapath+"/"
 resultpath=config['PathToResult']
-if (resultpath[:-1] != "/"):
+if (resultpath[-1] != "/"):
 	resultpath=resultpath+"/"
 refpath=config['PathToReference']
 analysis_table=config['AnalysisTable']
@@ -221,7 +221,7 @@ rule blastn_analysis:
 		"""
 		Rscript script/Blastn_analysis_MI.R {input.R_data} \
 			{input.AnalTable} {params.analyse} \
-			{output.blastn_result} {output.ref_count_plot} \
+			{output.blastn_result} {output.ref_ratio_plot} \
 			{MI_cutoff} {wildcards.barcode} {output.multi_inf_table} {output.ref_count_plot}
 		"""  
 
