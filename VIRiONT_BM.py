@@ -45,7 +45,7 @@ rule pipeline_ending:
         #ref_rep=resultpath+"REFSEQ/",
         #database = expand(resultpath+"DB/"+database_name+".{ext}", ext=["nhr", "nin", "nsq"]),
         #R_data = expand(resultpath+"BLASTN_RESULT/{barcode}_fmt.txt" ,barcode=BARCODE),
-        #best_ref = expand(resultpath+"BLASTN_ANALYSIS/{barcode}_bestref.txt",barcode=BARCODE),
+        #best_ref = expand(resultpath+"04_BLASTN_ANALYSIS/{barcode}_bestref.txt",barcode=BARCODE),
         #merged_filtered = expand(resultpath+"FILTERED/{barcode}_bestref.fastq" ,barcode=BARCODE),
         #conv_filtered_fastq = expand(resultpath+"METRIC/{barcode}_readseq.fasta" ,barcode=BARCODE),
         #spliced_bam = expand(resultpath+"BAM/{barcode}_spliced.bam"  ,barcode=BARCODE),
@@ -361,15 +361,12 @@ rule generate_consensus:
     message:
         "Generate consensus sequence from variant calling file."
     input:
-        vcf = rules.variant_calling.output.vcf,
-        read_list = resultpath+"04_BLASTN_ANALYSIS/{barcode}_read-list.txt",
-        best_ref = resultpath+"04_BLASTN_ANALYSIS/{barcode}_bestref.txt",        
+        vcf = rules.variant_calling.output.vcf,    
     output:
         fasta_cons_temp = temp(resultpath+"09_CONSENSUS/{barcode}_cons_temp.fasta") ,
         fasta_cons = resultpath+"09_CONSENSUS/{barcode}_cons.fasta"
     shell:
         """
-        bestref=`cat {input.best_ref}`
-        perl script/pathogen_varcaller_MINION.PL {input} {variant_frequency} {output.fasta_cons_temp} 
-        sed  's/>.*/>{wildcards.barcode}_${{bestref}}_VIRiONT/' {output.fasta_cons_temp} > {output.fasta_cons}
+        perl script/pathogen_varcaller_MINION.PL {input.vcf} {variant_frequency} {output.fasta_cons_temp} 
+        sed  's/$/_{wildcards.barcode}_VIRiONT/' {output.fasta_cons_temp} > {output.fasta_cons}
         """    
