@@ -30,8 +30,8 @@ database_name=list_split[0]
 barcode_list = glob.glob(datapath+"barcode*")
 BARCODE=[]
 for BC in barcode_list:
-    newpath=os.path.basename(BC)
-    BARCODE.append(newpath)
+	barcode=str(os.path.basename(BC))
+	BARCODE.append(barcode)
 
 #BAC A SABLE
 multiinf_table = pd.read_csv(resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv",sep="\t",names=["barcode", "reference", "ratio"])
