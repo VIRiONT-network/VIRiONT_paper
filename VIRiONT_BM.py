@@ -30,8 +30,8 @@ database_name=list_split[0]
 barcode_list = glob.glob(datapath+"barcode*")
 BARCODE=[]
 for BC in barcode_list:
-    barcode=BC[-9:]
-    BARCODE.append(barcode)
+    newpath=os.path.basename(BC)
+    BARCODE.append(newpath)
 
 #final output
 rule pipeline_ending:
