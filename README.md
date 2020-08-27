@@ -105,6 +105,7 @@ Here is a view on the parameters to check before launching analysis. To change p
 **ref_table** : path to the Table (currently a .csv is required) containing reference list for the blastn analysis. /!\ Column must correspond to the fasta name in ref_loc for correctly computing the best reference, and each row must correspond to each fasta header in the reference fasta file. Please check analysis/table_analysis if needed for an example.  
 **min_length** : minimal read size required for passing the filtering step.  
 **max_length** : maximal read size required for passing the filtering step.  
+trim
 **head** : nucleotid length to be trimmed in 5'.  
 **tail** : nucleotid length to be trimmed in 3'.  
 **Vfreq** : minor variant frequency threshold to call the consensus sequence.  
