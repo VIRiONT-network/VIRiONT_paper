@@ -18,23 +18,25 @@ BM_read_table<-BM_read_table[,-1]
 bc_ref_assign<-unique(BM_read_table[,c("sample","reference")])
 
 
-nbread_BM<-setNames(aggregate(BM_read_table$count,list(BM_read_table$sample),
-                                  function(x) sum(x)),c("sample","readnumber"))
-min_BM<-setNames(aggregate(BM_read_table$length,list(BM_read_table$sample),
-                               function(x) min(x)),c("sample","minlength"))
-max_BM<-setNames(aggregate(BM_read_table$length,list(BM_read_table$sample),
-                               function(x) max(x)),c("sample","maxlength"))
-mean_BM<-setNames(aggregate(BM_read_table$length,list(BM_read_table$sample),
-                                function(x) mean(x)),c("sample","meanlength"))
-median_BM<-setNames(aggregate(BM_read_table$length,list(BM_read_table$sample),
-                                  function(x) median(x)),c("sample","medianlength"))
+nbread_BM<-setNames(aggregate(BM_read_table$count,list(BM_read_table$sample,BM_read_table$reference),
+                              function(x) sum(x)),c("sample","ref","readnumber"))
+min_BM<-setNames(aggregate(BM_read_table$length,list(BM_read_table$sample,BM_read_table$reference),
+                           function(x) min(x)),c("sample","ref","minlength"))
+max_BM<-setNames(aggregate(BM_read_table$length,list(BM_read_table$sample,BM_read_table$reference),
+                           function(x) max(x)),c("sample","ref","maxlength"))
+mean_BM<-setNames(aggregate(BM_read_table$length,list(BM_read_table$sample,BM_read_table$reference),
+                            function(x) mean(x)),c("sample","ref","meanlength"))
+median_BM<-setNames(aggregate(BM_read_table$length,list(BM_read_table$sample,BM_read_table$reference),
+                              function(x) median(x)),c("sample","ref","medianlength"))
 
-BM_metric<-merge(nbread_BM,min_BM,by="sample")
-BM_metric<-merge(BM_metric,max_BM,by="sample")
-BM_metric<-merge(BM_metric,mean_BM,by="sample")
-BM_metric<-merge(BM_metric,median_BM,by="sample")
-BM_metric<-merge(BM_metric,bc_ref_assign,by="sample")
-colnames(BM_metric)[7]<-"status"
+BM_metric<-merge(nbread_BM,min_BM,by=c("sample","ref"))
+BM_metric<-merge(BM_metric,max_BM,by=c("sample","ref"))
+BM_metric<-merge(BM_metric,mean_BM,by=c("sample","ref"))
+BM_metric<-merge(BM_metric,median_BM,by=c("sample","ref"))
+
+colnames(BM_metric)[2]<-"status"
+
+BM_metric<-BM_metric[,c("sample","readnumber","minlength","maxlength","meanlength","medianlength","status")]
 
 full_summ_metric<-rbind(half_summ_table,BM_metric)
 

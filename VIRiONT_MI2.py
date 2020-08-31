@@ -77,13 +77,13 @@ for i in range(0,assoc_sample_ref_number):
 
 rule all:
     input:
-        readlist,
-        fastq_filtered,
-        bamfile,
-        covfile,
-        vcffile,
+        #readlist,
+        #fastq_filtered,
+        #bamfile,
+        #covfile,
+        #vcffile,
         consfile,
-        filtseqfile,
+        #filtseqfile,
         #raw_read = expand(resultpath+"10_QC_ANALYSIS/{barcode}_rawseq.txt",barcode=BARCODE),
         #trimmed_read = expand(resultpath+"10_QC_ANALYSIS/{barcode}_trimmseq.txt",barcode=BARCODE),
         #dehosted_read = expand(resultpath+"10_QC_ANALYSIS/{barcode}_dehostseq.txt",barcode=BARCODE),
