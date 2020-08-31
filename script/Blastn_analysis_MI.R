@@ -8,26 +8,22 @@ blastn_data<-read.table(argv[1],header=F,sep="\t")
 analysis_table<-read.csv2(argv[2])
 #analysis_table<-read.csv2("C:/Users/regueex/Desktop/test_ViralION/table_analysis.csv")
 
-analysis<-as.character(argv[3])
-#analysis<-"HBV_REF"
+output_blastnresult<-as.character(argv[3])
 
-output_blastnresult<-as.character(argv[4])
+output_plot<-as.character(argv[4])
 
-output_plot<-as.character(argv[5])
-
-cutoff<-as.numeric(argv[6])
+cutoff<-as.numeric(argv[5])
 #cutoff<-10
 
-samplename<-as.character(argv[7])
+samplename<-as.character(argv[6])
 #samplename<-"BC01"
 
-multiinf_table_name<-as.character(argv[8])
+multiinf_table_name<-as.character(argv[7])
 
-output_plot_count<-as.character(argv[9])
+output_plot_count<-as.character(argv[8])
 
-reference_list<-as.character(analysis_table[,which(colnames(analysis_table)==analysis)])
+reference_list<-as.character(analysis_table[,which(colnames(analysis_table)=="REF_NAME")])
 reference_list<-subset(reference_list,reference_list!="" & !(is.na(reference_list)))
-
 
 table_f<-blastn_data[,-c(3:11)]
 colnames(table_f)<-c("READ","GENOTYPE","SCORE")

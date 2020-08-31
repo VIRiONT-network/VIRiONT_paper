@@ -28,5 +28,10 @@ for header,sequence in fasta_list.items():
     fasta_file.write(sequence.rstrip("\n")+"\n")
     fasta_file.close() 
 
-
-
+R_tableBLAST=open(output_dir+"R_table_analysis.csv","w")
+R_tableBLAST.write("REF_NUM;REF_NAME\n")
+cpt=1
+for header,sequence in fasta_list.items():
+    R_tableBLAST.write(str(cpt)+";"+header[1:].strip()+"\n")
+    cpt=cpt+1
+R_tableBLAST.close()

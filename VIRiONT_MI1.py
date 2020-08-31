@@ -12,7 +12,7 @@ resultpath=config['PathToResult']
 if (resultpath[-1] != "/"):
 	resultpath=resultpath+"/"
 refpath=config['PathToReference']
-analysis_table=config['AnalysisTable']
+#analysis_table=config['AnalysisTable']
 trim_min=config['Lmin']
 trim_max=config['Lmax']
 trim_head=config['headcrop']
@@ -40,13 +40,12 @@ rule pipeline_ending:
 		#trimmed_file = expand(resultpath+'TRIMMED/{barcode}_trimmed.fastq',barcode=BARCODE),
 		#human_bam = expand(resultpath+"DEHOSTING/{barcode}_human.bam",barcode=BARCODE),
 		#viral_bam = expand(resultpath+"VIRAL/{barcode}_viral.bam",barcode=BARCODE),
-		#viral_fastq = expand(resultpath + 'VIRAL/{barcode}_viral.fastq',barcode=BARCODE),
+		#viral_fastq = expand(resultpath + '03_DEHOSTING/{barcode}_nonhuman.fastq',barcode=BARCODE),
 		#converted_fastq = expand(resultpath+"FASTA/{barcode}.fasta", barcode=BARCODE),
-		#ref_rep=resultpath+"REFSEQ/",
-		#database = expand(resultpath+"DB/"+database_name+".{ext}", ext=["nhr", "nin", "nsq"]),
-		#R_data = expand(resultpath+"BLASTN_RESULT/{barcode}_fmt.txt" ,barcode=BARCODE),		
+		#ref_rep=resultpath+"00_SUPDATA/REFSEQ/",
+		#database = expand(resultpath+"00_SUPDATA/DB/"+database_name+".{ext}", ext=["nhr", "nin", "nsq"]),
+		#R_data = expand(resultpath+"04_BLASTN_ANALYSIS/{barcode}_fmt.txt" ,barcode=BARCODE),		
 		blastn_result=expand(resultpath+"04_BLASTN_ANALYSIS/{barcode}_blastnR.tsv",barcode=BARCODE),
-		ref_rep = resultpath+"00_SUPDATA/REFSEQ/",
 		######## MULTI INFECTION #########
 		summ_multiinf = resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv",
 
@@ -207,7 +206,8 @@ rule blastn_analysis:
 		"computing the majoritary reference using R."
 	input:
 		R_data = rules.blastn_ref.output.R_data ,
-		AnalTable = analysis_table ,
+		#AnalTable = analysis_table ,
+		ref_table = rules.split_reference.output.ref_rep,
 	output:
 		ref_ratio_plot = resultpath+"04_BLASTN_ANALYSIS/{barcode}_ratio_plot.png",
 		ref_count_plot = resultpath+"04_BLASTN_ANALYSIS/{barcode}_count_plot.png",
@@ -220,7 +220,7 @@ rule blastn_analysis:
 	shell:
 		"""
 		Rscript script/Blastn_analysis_MI.R {input.R_data} \
-			{input.AnalTable} {params.analyse} \
+			{input.ref_table}R_table_analysis.csv \
 			{output.blastn_result} {output.ref_ratio_plot} \
 			{MI_cutoff} {wildcards.barcode} {output.multi_inf_table} {output.ref_count_plot}
 		"""  
