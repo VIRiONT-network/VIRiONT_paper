@@ -12,12 +12,10 @@ resultpath=config['PathToResult']
 if (resultpath[-1] != "/"):
 	resultpath=resultpath+"/"
 refpath=config['PathToReference']
-#analysis_table=config['AnalysisTable']
 trim_min=config['Lmin']
 trim_max=config['Lmax']
 trim_head=config['headcrop']
 trim_tail=config['tailcrop']
-variant_frequency=config['variantfrequency']
 MI_cutoff=config['multiinf']
 
 #get database name
@@ -36,23 +34,23 @@ for BC in barcode_list:
 #final output
 rule pipeline_ending:
 	input:
-		#merged_file = expand(resultpath+'MERGED/{barcode}_merged.fastq',barcode=BARCODE),
-		#trimmed_file = expand(resultpath+'TRIMMED/{barcode}_trimmed.fastq',barcode=BARCODE),
-		#human_bam = expand(resultpath+"DEHOSTING/{barcode}_human.bam",barcode=BARCODE),
-		#viral_bam = expand(resultpath+"VIRAL/{barcode}_viral.bam",barcode=BARCODE),
+		######## INTERMEDIATE FILES ########
+		#database = expand(resultpath+"00_SUPDATA/DB/"+database_name+".{ext}", ext=["nhr", "nin", "nsq"]),
+		#merged_file = expand(resultpath+'01_MERGED/{barcode}_merged.fastq',barcode=BARCODE),
+		#trimmed_file = expand(resultpath+'02_TRIMMED/{barcode}_trimmed.fastq',barcode=BARCODE),
+		#human_bam = expand(resultpath+"03_DEHOSTING/{barcode}_human.bam",barcode=BARCODE),
 		#viral_fastq = expand(resultpath + '03_DEHOSTING/{barcode}_nonhuman.fastq',barcode=BARCODE),
 		#converted_fastq = expand(resultpath+"FASTA/{barcode}.fasta", barcode=BARCODE),
 		#ref_rep=resultpath+"00_SUPDATA/REFSEQ/",
-		#database = expand(resultpath+"00_SUPDATA/DB/"+database_name+".{ext}", ext=["nhr", "nin", "nsq"]),
-		#R_data = expand(resultpath+"04_BLASTN_ANALYSIS/{barcode}_fmt.txt" ,barcode=BARCODE),		
+		#R_data = expand(resultpath+"04_BLASTN_ANALYSIS/{barcode}_fmt.txt" ,barcode=BARCODE),
+		######## FINAL OUTPUTS ########		
 		blastn_result=expand(resultpath+"04_BLASTN_ANALYSIS/{barcode}_blastnR.tsv",barcode=BARCODE),
-		######## MULTI INFECTION #########
 		summ_multiinf = resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv",
 
 
 rule merging_fastq:
 	message:
-		"Merging fastq: path/to/data/*.fastq ==> path/to/results/MERGED/{barcode}_merged.fastq "
+		"Merging fastq into the {wildcards.barcode}/ folder if needed. "
 	input: 
 		lambda wildcards: expand(datapath+"{barcode}", barcode=BARCODE)
 	output: 
@@ -74,6 +72,7 @@ rule get_hg19:
 		wget -P ref/ http://hgdownload.cse.ucsc.edu/goldenPath/hg19/bigZips/hg19.fa.gz
 		gunzip ref/hg19.fa.gz       
 		"""
+
 rule index_hg19:
 	message:
 		"Indexing the hg19 reference genome for a quicker dehosting. Executed once per VIRiONT installation."
@@ -88,7 +87,7 @@ rule index_hg19:
 
 rule trimming_fastq:
 	message:
-		"Filtering and trimming fastq using NanoFilt using input parameters."
+		"Filtering and trimming {wildcards.barcode}_merged.fastq using NanoFilt with input parameters."
 	input:
 		merged_fastq = rules.merging_fastq.output.merged_fastq
 	output:
@@ -100,7 +99,7 @@ rule trimming_fastq:
 
 rule hg19_dehosting:
 	message:
-		"Aligning fastq on human genome for identifying host reads."
+		"Aligning {wildcards.barcode}_trimmed.fastq on human genome for identifying host reads using minimap2."
 	input:
 		trimmed_fastq = rules.trimming_fastq.output.trimmed_fastq ,
 		ref_file= rules.index_hg19.output.hg19_index
@@ -116,7 +115,7 @@ rule hg19_dehosting:
 
 rule nonhuman_read_extract:
 	message:
-		"Extract unaligned reads."
+		"Extract unaligned reads from {wildcards.barcode}_human.bam using samtools."
 	input:
 		human_bam = rules.hg19_dehosting.output.human_bam
 	output:
@@ -128,7 +127,7 @@ rule nonhuman_read_extract:
 
 rule converting_bam_fastq:
 	message:
-		"Convert bam to fastq."
+		"Convert {wildcards.barcode}_nonhuman.bam to {wildcards.barcode}_nonhuman.fastq using bedtools."
 	input:
 		nonhuman_bam = rules.nonhuman_read_extract.output.nonhuman_bam 
 	output:
@@ -142,7 +141,7 @@ rule converting_bam_fastq:
 
 rule converting_fastq_fasta:
 	message:
-		"Converting fastq==>fasta for blastn research"
+		"Converting {wildcards.barcode}_nonhuman.fastq into {wildcards.barcode}.fasta for blastn research using seqtk."
 	input:
 		nonhuman_fastq = rules.converting_bam_fastq.output.nonhuman_fastq
 	output:
@@ -159,7 +158,7 @@ rule converting_fastq_fasta:
 
 rule split_reference:
 	message:
-		"Spliting reference for isolate each genotype sequence."
+		"Spliting the input reference for isolate each genotype sequence if multiple reference are given."
 	input:
 		ref_file= refpath
 	output:
@@ -169,7 +168,7 @@ rule split_reference:
 
 rule make_db:
 	message:
-		"build blast database from reference using blastn."
+		"build blast database from input reference using makeblastdb."
 	input:
 		ref_fasta_file = refpath 
 	output:
@@ -185,7 +184,7 @@ rule make_db:
 
 rule blastn_ref:
 	message:
-		"Blasting  on the custom database."
+		"Blasting {wildcards.barcode}.fasta on the custom database."
 	input: 
 		fasta_file = rules.converting_fastq_fasta.output.converted_fastq,
 		database = rules.make_db.output.database ,
@@ -203,10 +202,9 @@ rule blastn_ref:
 
 rule blastn_analysis:
 	message:
-		"computing the majoritary reference using R."
+		"Computing the majoritary reference for {wildcards.barcode}_nonhuman.fastq and checking multi-infection case above the given threshold ({MI_cutoff}%) using R."
 	input:
 		R_data = rules.blastn_ref.output.R_data ,
-		#AnalTable = analysis_table ,
 		ref_table = rules.split_reference.output.ref_rep,
 	output:
 		ref_ratio_plot = resultpath+"04_BLASTN_ANALYSIS/{barcode}_ratio_plot.png",
@@ -226,6 +224,8 @@ rule blastn_analysis:
 		"""  
 
 rule summ_multiinf:
+	message:
+		"Store MI results in SUMMARY_Multi_Infection.tsv ."
 	input:
 		multi_inf_table = expand(rules.blastn_analysis.output.multi_inf_table,barcode=(BARCODE))
 	output:
