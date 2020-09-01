@@ -8,16 +8,12 @@ blastn_data<-read.table(argv[1],header=F,sep="\t")
 analysis_table<-read.csv2(argv[2])
 #analysis_table<-read.csv2("C:/Users/regueex/Desktop/test_ViralION/table_analysis.csv")
 
-analysis<-as.character(argv[3])
-#analysis<-"HBV_REF"
+output_readlist<-as.character(argv[3])
+output_bestref<-as.character(argv[4])
+output_plot<-as.character(argv[5])
+output_plot_count<-as.character(argv[6])
 
-output_readlist<-as.character(argv[4])
-output_bestref<-as.character(argv[5])
-output_plot<-as.character(argv[6])
-MI_cutoff<-as.numeric(argv[7])
-output_plot_count<-as.character(argv[8])
-
-reference_list<-as.character(analysis_table[,which(colnames(analysis_table)==analysis)])
+reference_list<-as.character(analysis_table[,which(colnames(analysis_table)=="REF_NAME")])
 reference_list<-subset(reference_list,reference_list!="" & !(is.na(reference_list)))
 
 
@@ -47,14 +43,12 @@ hist_data$Genotype<-label
 hist_data$Ratio_Bestref<-hist_data$count_Geno/max(hist_data$count_Geno)*100
 hist_data$Ratio_Bestref<-trunc(hist_data$Ratio_Bestref)
 
-
 png(filename = output_plot)
 ggplot(data=hist_data, aes(x=Genotype, y=Ratio_Bestref)) +
   geom_bar(stat="identity",color="black",fill="steelblue")+
   geom_text(aes(label=Ratio_Bestref), vjust=-1, color="black", size=4)+
   ggtitle("Reference repartition per read")+
   labs(y= "percentage reference/best_reference", x = "reference")+
-  geom_hline(aes(yintercept=MI_cutoff),linetype="dashed")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 dev.off()
 

@@ -11,14 +11,11 @@ resultpath=config['PathToResult']
 if (resultpath[-1] != "/"):
 	resultpath=resultpath+"/"
 refpath=config['PathToReference']
-analysis_table=config['AnalysisTable']
 trim_min=config['Lmin']
 trim_max=config['Lmax']
 trim_head=config['headcrop']
 trim_tail=config['tailcrop']
 variant_frequency=config['variantfrequency']
-MI_cutoff=config['multiinf']
-
 
 #get database name
 filename=os.path.basename(refpath)
@@ -55,7 +52,6 @@ rule pipeline_ending:
         fasta_cons = expand(resultpath+"09_CONSENSUS/{barcode}_cons.fasta",barcode=BARCODE), 
         #QC
         summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_table.csv"
-
 
 rule merging_fastq:
     message:
@@ -213,7 +209,7 @@ rule blastn_analysis:
         "computing the majoritary reference using R."
     input:
         R_data = rules.blastn_ref.output.R_data ,
-        AnalTable = analysis_table ,
+        ref_table = rules.split_reference.output.ref_rep,
     output:
         read_list = resultpath+"04_BLASTN_ANALYSIS/{barcode}_read-list.txt",
         best_ref = resultpath+"04_BLASTN_ANALYSIS/{barcode}_bestref.txt",
@@ -226,9 +222,9 @@ rule blastn_analysis:
     shell:
         """
         Rscript script/Blastn_analysis.R {input.R_data} \
-            {input.AnalTable} {params.analyse} \
+            {input.ref_table}R_table_analysis.csv  \
             {output.read_list} {output.best_ref} {output.ref_ratio_plot} \
-            {MI_cutoff} {output.ref_count_plot}
+            {output.ref_count_plot}
         """  
 
 rule extract_matching_read:
