@@ -235,7 +235,7 @@ rule extract_matching_read:
         nonhuman_fastq = rules.converting_bam_fastq.output.nonhuman_fastq
        
     output:
-        merged_filtered = resultpath+"05_BESTREF_FILTERED/{barcode}_bestref.fastq" 
+        merged_filtered = resultpath+"05_REFFILTERED/{barcode}_bestref.fastq" 
     conda:
         "env/seqkit.yaml"          
     shell:

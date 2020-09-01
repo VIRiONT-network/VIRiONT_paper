@@ -38,40 +38,42 @@ Environment files and software versions are available in the *env/* folder.
 *fastq and fasta management* : seqtk v1.3. See => https://github.com/lh3/seqtk <=   
 *coverage computation* : bedtools v2.29.2. See => https://github.com/arq5x/bedtools <=   
 *statistics and plotting* : R v4.0.2. See => https://cran.r-project.org/ <=  
+*sequence alignment* : muscle v3.8.1551. See => http://www.drive5.com/muscle <=  
+*newick tree computation* : iqtree v2.0.3. See => http://www.iqtree.org/ <=  
+*tree drawing* : ete3 v3.1.2. See => http://etetoolkit.org/ <=  
 
 # Multiple Infection case
 
 Two workflows are available:  
 -One workflow *VIRiONT_BM.py* generating one consensus sequence per barcode, called using the script *VIRiONT_BM.sh*. The major reference in read matching count is used to produce the consensus sequence.  
--The second workflow *VIRiONT_MI.py* called using the script *VIRiONT_MI.sh*. Using an input given threshold, selected references are used to produde as many consensus sequences as selected references for each barcode. A reference is selected when the current_reference_read_count/major_reference*100 is equal or above the input threshold
+-The second workflow *VIRiONT_MI.py* called using the script *VIRiONT_MI.sh*. Using an input given threshold, selected references are used to produde as many consensus sequences as selected references for each barcode. A reference is selected when the current_reference_read_count/major_reference*100 is equal or above the input threshold.
 
 # Quick using steps
 
-Step 1 : Get and install Anaconda here if needed => https://www.anaconda.com/products/individual <=  
-You may need to start new terminal for starting using conda.   
+Step 1 : Get and install Anaconda here if needed. More informations about conda here => https://www.anaconda.com/products/individual <=  
 ```
-wget https://repo.anaconda.com/archive/Anaconda3-2020.07-Linux-x86_64.sh
-chmod +x Anaconda3-2020.07-Linux-x86_64.sh
+wget https://repo.anaconda.com/archive/Anaconda3-2020.07-Linux-x86_64.sh # download the linux installing script.
+chmod +x Anaconda3-2020.07-Linux-x86_64.sh #give rights to execute the script.
 ./Anaconda3-2020.07-Linux-x86_64.sh #Simply follow screen instructions for installing conda.
+#Check if conda is installed. You'll probably need to refresh/open a new terminal for starting using conda.
+conda -h #print conda commands.
+conda -V #print installed conda version.
 ```
-Step 2 : make sure snakemake is installed on your computer. 
-```
-conda -h
-conda -V
-``` 
+Step 2 : make sure snakemake is installed on your computer.  
+
 Snakemake 3.9.0 version or above is required for conda interaction.  
-pandas python library is also required for dataframe reading.
+pandas python library is also required for dataframe reading.  
 You can quikly create a new conda environment with the pandas library and the latest available snakemake version by using this command(currently the 5.20.1 version):  
 ```
 conda create -c bioconda -c conda-forge -n VIRiONT_env snakemake-minimal pandas
 ```
 Step 3 : download latest version of the pipeline using git command:  
 ```
-git clone https://github.com/Stygiophobic/VIRiONT.git
+git clone https://github.com/HadrienRegue/VIRiONT.git
 ```
 Step 4 : launch the pipeline by executing:  
 ```
-conda activate VIRiONT_env
+conda activate VIRiONT_env #only if you previously created this environment for using VIRiONT.
 cd VIRiONT
 ./VIRiONT_BM.sh # Generate consensus from best matching reference only 
 ./VIRiONT_MI.sh # Generate consensus for all references over the given threshold
@@ -79,20 +81,19 @@ cd VIRiONT
 
 # Pipeline ouputs
 
-All pipeline output are stored in the choosen path (see below).For each analysis, the following output are produced:  
+All pipeline outputs are stored in the choosen path (see below).For each analysis, the following output are produced for both BM and MI analysis:  
 
 **00_SUPDATA/BD** folder, containing the database built using blast and individual reference sequences.  
 **01_MERGED** folder, containing merged fastq.  
 **02_TRIMMED** folder, containing trimmed fastq by NanoFilt with the given parameters.  
 **03_DEHOSTING** folder, containing dehosted (non human) bam.  
-**04_BLASTN_ANALYSIS** folder, containing the blastn analysis using R, including the list of reads matching with the best reference, with barplot of reference repartition for each barcode.  
-**05_BESTREF_FILTERED** folder, containing fastq with read corresponding with best reference only using seqkit.  
-BAM folder, containing sorted and indexed bam from each filtered fastq, and mapped on their respecting best matching reference.  
+**04_BLASTN_ANALYSIS** folder, containing the blastn analysis results, including the list of reads matching with the best reference, with barplot of reference repartition for each barcode.  
+**05_REFFILTERED** folder, containing fastq with read corresponding with the corresponding matching references.   
 **06_BAM** folder, containing bam aligned on the best reference.  
 **07_COVERAGE** folder, containing coverage table from each bam using bedtools, and coverage plots compiled into one pdf.  
 **08_VCF** folder, containing mpileup and variant calling results.  
 **09_CONSENSUS** folder, containing consensus sequences generated by a custom perl script.  
-**10_QC_ANALYSIS** folder, containing usefull read metrics at several pipeline steps.  
+**10_QC_ANALYSIS** folder, containing usefull read metrics at several pipeline steps and consensus phylogenetic tree.  
 
 
 # Input and configuration
@@ -102,10 +103,8 @@ Here is a view on the parameters to check before launching analysis. To change p
 **data_loc** : path where fastq data are stored. Be sure this path leads on all barcode folders you want to analyse. Currently, only fastq repositories marked as "barcode*" are interpreted as repository data. If needed, rename your rep as "barcode*".  
 **result_loc** : path leading to the output folders produced by the analysis. NB: the pipeline will recursively create the path, so a previous mkdir is unnecessary.  
 **ref_loc** : path to the file containing all references sequences used for the blastn analysis. We you need to create a new one, check examples in *ref/* folder.  
-**ref_table** : path to the Table (currently a .csv is required) containing reference list for the blastn analysis. /!\ Column must correspond to the fasta name in ref_loc for correctly computing the best reference, and each row must correspond to each fasta header in the reference fasta file. Please check analysis/table_analysis if needed for an example.  
 **min_length** : minimal read size required for passing the filtering step.  
 **max_length** : maximal read size required for passing the filtering step.  
-trim
 **head** : nucleotid length to be trimmed in 5'.  
 **tail** : nucleotid length to be trimmed in 3'.  
 **Vfreq** : minor variant frequency threshold to call the consensus sequence.  
