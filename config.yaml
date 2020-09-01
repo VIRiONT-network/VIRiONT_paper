@@ -6,11 +6,8 @@ PathToData : "/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/DATASET/"
 #Define here the data repository. Snakemake will create result files here
 PathToResult : "/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/RESULTS/"
 
-#Indicate fasta file containing reference for all genotype
+#Indicate fasta file containing references
 PathToReference : "ref/HBV_REF.fasta"
-
-#Analysis table used by R for blastn analysis
-AnalysisTable : "analysis/table_analysis.csv"
 
 #MULTI INFECTION THRESHOLD
 multiinf : 10
@@ -21,5 +18,6 @@ Lmin : 1500
 Lmax : 3500
 headcrop : 0
 tailcrop : 0
+
 #perl
 variantfrequency : 0.5
