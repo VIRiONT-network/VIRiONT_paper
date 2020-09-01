@@ -12,11 +12,6 @@ resultpath=config['PathToResult']
 if (resultpath[-1] != "/"):
 	resultpath=resultpath+"/"
 refpath=config['PathToReference']
-analysis_table=config['AnalysisTable']
-trim_min=config['Lmin']
-trim_max=config['Lmax']
-trim_head=config['headcrop']
-trim_tail=config['tailcrop']
 variant_frequency=config['variantfrequency']
 
 
@@ -33,7 +28,7 @@ for BC in barcode_list:
 	barcode=str(os.path.basename(BC))
 	BARCODE.append(barcode)
 
-#BAC A SABLE
+#Read MI results from VIRiONT_MI1.py
 data_multiinf = resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv"
 multiinf_table = pd.read_csv(resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv",sep="\t",names=["barcode", "reference", "ratio"])
 sample_list=list(multiinf_table['barcode'])
@@ -76,15 +71,20 @@ for i in range(0,assoc_sample_ref_number):
 	filtseqfile.append(resultpath +"10_QC_ANALYSIS/"+sample_list[i]+"/"+reference_list[i]+"_filterseq.txt")
 
 
-rule all:
+rule pipeline_output:
     input:
+        ######## INTERMEDIATE FILES ########
         #readlist,
         #fastq_filtered,
         #bamfile,
-        #covfile,
-        #vcffile,
-        consfile,
         #filtseqfile,
+        #vcffile,
+        ######## COVERAGE ANALYSIS ########  
+        #covfile,
+        cov_plot = resultpath+"07_COVERAGE/cov_plot.pdf",
+        ######## CONSENSUS FILES ########       
+        consfile,
+        ######## QC METRIC FILES ########  
         #raw_read = expand(resultpath+"10_QC_ANALYSIS/{barcode}_rawseq.txt",barcode=BARCODE),
         #trimmed_read = expand(resultpath+"10_QC_ANALYSIS/{barcode}_trimmseq.txt",barcode=BARCODE),
         #dehosted_read = expand(resultpath+"10_QC_ANALYSIS/{barcode}_dehostseq.txt",barcode=BARCODE),
@@ -92,17 +92,17 @@ rule all:
         #trimmed_all = resultpath+"10_QC_ANALYSIS/CAT_trimmseq.tab",
         #dehosted_all = resultpath+"10_QC_ANALYSIS/CAT_dehostseq.tab",
         #bestmatched_all = resultpath+"10_QC_ANALYSIS/CAT_BMseq.tab",
-        cov_plot = resultpath+"07_COVERAGE/cov_plot.pdf",
         #summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_tableTEMP.csv",
         full_summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_table.csv",
+        ######## QC PHYLOGENETIC TREE FILES ########  
         #allseq = resultpath+"10_QC_ANALYSIS/TREE/allseq.fasta",
         #align_seq = resultpath+"10_QC_ANALYSIS/TREE/align_seq.fasta",
         #NWK_tree = resultpath+"10_QC_ANALYSIS/TREE/IQtree_analysis.treefile",
         tree_pdf = resultpath+"10_QC_ANALYSIS/RADIAL_tree.pdf"
 
-
-
 rule getfastqlist:
+    message:
+        "Get read headers from {wildcards.barcode}_nonhuman.fastq matching with {wildcards.reference} using R."
     input:
         blastn_result = resultpath+"04_BLASTN_ANALYSIS/{barcode}_blastnR.tsv"
     output:
@@ -114,7 +114,7 @@ rule getfastqlist:
 
 rule extract_matching_read:
 	message:
-		"filtrate read from majoritary reference."
+		"Filtrate read from {wildcards.barcode}_nonhuman.fastq into {wildcards.barcode}/{wildcards.reference}_filtered.fastq using seqkit."
 	input:
 		read_list = rules.getfastqlist.output.fastqlist,
 		nonhuman_fastq = resultpath + '03_DEHOSTING/{barcode}_nonhuman.fastq'      
@@ -129,7 +129,7 @@ rule extract_matching_read:
 
 rule filtered_fastq_alignemnt:
     message:
-        "alignment on the majoritary reference using minimap2."
+        "Align {wildcards.barcode}/{wildcards.reference}_filtered.fastq on {wildcards.reference}.fasta using minimap2."
     input:   
         merged_filtered = rules.extract_matching_read.output.merged_filtered ,
         split_ref_path = resultpath+"00_SUPDATA/REFSEQ/" ,
@@ -145,7 +145,7 @@ rule filtered_fastq_alignemnt:
 
 rule compute_coverage:
     message:
-        "compute coverage from bam using bedtools."
+        "Compute coverage from {wildcards.barcode}/{wildcards.reference}_sorted.bam using bedtools."
     input:
         sorted_bam = rules.filtered_fastq_alignemnt.output.spliced_bam
     output:
@@ -159,7 +159,7 @@ rule compute_coverage:
 
 rule plot_coverage:
     message:
-        "Plot coverage summary."
+        "Plot coverage summary using R."
     input:
         cov = covfile
     output:
@@ -175,7 +175,7 @@ rule plot_coverage:
 
 rule variant_calling:
     message:
-        "Variant calling on reference aligned bam."
+        "Variant calling on {wildcards.barcode}/{wildcards.reference}_sorted.bam aligned bam using samtools."
     input:
         split_ref_path = resultpath+"00_SUPDATA/REFSEQ/"  ,
         sorted_bam = rules.filtered_fastq_alignemnt.output.spliced_bam ,
@@ -190,7 +190,7 @@ rule variant_calling:
 
 rule generate_consensus:
     message:
-        "Generate consensus sequence from variant calling file."
+        "Generate consensus sequence from /{wildcards.barcode}/{wildcards.reference}_sammpileup.vcf using perl script."
     input:
         vcf = rules.variant_calling.output.vcf
     output:
@@ -204,7 +204,7 @@ rule generate_consensus:
         
 rule read_metric:
     message:
-        "Extract read sequence from fastq for metric computation."
+        "Extract read sequence from  MERGED/TRIMMED/DEHOSTED {wildcards.barcode}.fastq for metric computation."
     input:
         raw_fastq = resultpath+"01_MERGED/{barcode}_merged.fastq"  ,
         trimmed_fastq = resultpath+"02_TRIMMED/{barcode}_trimmed.fastq" ,
@@ -222,7 +222,7 @@ rule read_metric:
 
 rule read_metric_MI:
     message:
-        "Extract read sequence from fastq for metric computation."
+        "Extract read sequence from REFERENCE_FILTERED {wildcards.barcode}.fastq for metric computation."
     input:
         bestmatched_fastq = rules.extract_matching_read.output.merged_filtered ,
     output:
@@ -234,7 +234,7 @@ rule read_metric_MI:
 
 rule summarize_metric:
     message:
-        "Compute metric and write the summary table."
+        "Compute metric and write the summary table using R."
     input:
         raw_read = expand(rules.read_metric.output.raw_read ,barcode=BARCODE),
         trimmed_read = expand(rules.read_metric.output.trimmed_read,barcode=BARCODE),
@@ -260,8 +260,9 @@ rule summarize_metric:
         """
 
 rule prepareSEQ:
+    message:
+        "Concatenate all consensus sequences with matched references."
     input:
-        #matching_refs = multiinf_table,
         allcons = expand(consfile),
         reference_file = refpath
     output:
@@ -280,6 +281,8 @@ rule prepareSEQ:
         """
 
 rule sequenceAlign:
+    message:
+        "Multiple Alignment on all sequences using Muscle."
     input:
         allseq = rules.prepareSEQ.output.allseq
     output:
@@ -290,6 +293,8 @@ rule sequenceAlign:
         "muscle -in {input} -out {output} -maxiters 2"
 
 rule buildTree:
+    message:
+        "Build Newick tree from alignment using iqtree."
     input:
         align_seq = rules.sequenceAlign.output.align_seq,
     output:
@@ -300,6 +305,8 @@ rule buildTree:
         " iqtree -s {input.align_seq} --prefix {resultpath}10_QC_ANALYSIS/IQtree_analysis "
 
 rule plotTree:
+    message:
+        "Plot radial tree using ETE 3."
     input:
         iqtree = rules.buildTree.output.iqtree ,
         NWK_data = resultpath+"10_QC_ANALYSIS/IQtree_analysis.treefile"
