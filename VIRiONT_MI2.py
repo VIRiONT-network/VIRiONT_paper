@@ -34,6 +34,7 @@ for BC in barcode_list:
 	BARCODE.append(barcode)
 
 #BAC A SABLE
+data_multiinf = resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv"
 multiinf_table = pd.read_csv(resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv",sep="\t",names=["barcode", "reference", "ratio"])
 sample_list=list(multiinf_table['barcode'])
 reference_list=list(multiinf_table['reference'])
@@ -94,6 +95,11 @@ rule all:
         cov_plot = resultpath+"07_COVERAGE/cov_plot.pdf",
         #summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_tableTEMP.csv",
         full_summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_table.csv",
+        #allseq = resultpath+"10_QC_ANALYSIS/TREE/allseq.fasta",
+        #align_seq = resultpath+"10_QC_ANALYSIS/TREE/align_seq.fasta",
+        #NWK_tree = resultpath+"10_QC_ANALYSIS/TREE/IQtree_analysis.treefile",
+        tree_pdf = resultpath+"10_QC_ANALYSIS/RADIAL_tree.pdf"
+
 
 
 rule getfastqlist:
@@ -252,3 +258,54 @@ rule summarize_metric:
         Rscript script/summarize_metric_MI2.R {output.bestmatched_all}\
              {output.summ_table} {output.full_summ_table}
         """
+
+rule prepareSEQ:
+    input:
+        #matching_refs = multiinf_table,
+        allcons = expand(consfile),
+        reference_file = refpath
+    output:
+        filtered_refseq_list = temp(resultpath+"10_QC_ANALYSIS/matching_ref.txt"),
+        filtered_refseq = temp(resultpath+"10_QC_ANALYSIS/matching_ref.fasta"),
+        cons_seq = resultpath+"09_CONSENSUS/all_cons.fasta",
+        allseq = temp(resultpath+"10_QC_ANALYSIS/allseq.fasta"),
+    conda:
+        "env/seqkit.yaml"   
+    shell:
+        """
+        awk '{{print $2}}' {data_multiinf} | sort | uniq > {output.filtered_refseq_list}
+		seqkit grep --pattern-file {output.filtered_refseq_list} {input.reference_file} > {output.filtered_refseq}
+        cat {input.allcons} > {output.cons_seq}
+        cat {output.filtered_refseq} {output.cons_seq} > {output.allseq}
+        """
+
+rule sequenceAlign:
+    input:
+        allseq = rules.prepareSEQ.output.allseq
+    output:
+        align_seq = temp(resultpath+"10_QC_ANALYSIS/align_seq.fasta")
+    conda:
+        "env/muscle.yaml"
+    shell:
+        "muscle -in {input} -out {output} -maxiters 2"
+
+rule buildTree:
+    input:
+        align_seq = rules.sequenceAlign.output.align_seq,
+    output:
+        iqtree = temp(expand(resultpath+"10_QC_ANALYSIS/IQtree_analysis"+".{ext}", ext=["bionj","ckp.gz","iqtree","log","mldist","model.gz","treefile"]))
+    conda:
+        "env/iqtree.yaml"
+    shell:
+        " iqtree -s {input.align_seq} --prefix {resultpath}10_QC_ANALYSIS/IQtree_analysis "
+
+rule plotTree:
+    input:
+        iqtree = rules.buildTree.output.iqtree ,
+        NWK_data = resultpath+"10_QC_ANALYSIS/IQtree_analysis.treefile"
+    output:
+        tree_pdf = resultpath+"10_QC_ANALYSIS/RADIAL_tree.pdf"
+    conda:
+        "env/ETE3.yaml"
+    shell:
+        "python3 script/makeTREE.py {input.NWK_data} {output.tree_pdf} "
