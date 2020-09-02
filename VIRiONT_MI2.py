@@ -301,18 +301,18 @@ rule buildTree:
     input:
         align_seq = rules.sequenceAlign.output.align_seq,
     output:
-        iqtree = temp(expand(resultpath+"11_PHYLOGENETIC_TREE/IQtree_analysis"+".{ext}", ext=["bionj","ckp.gz","iqtree","log","mldist","model.gz","treefile"]))
+        iqtree = temp(expand(resultpath+"11_PHYLOGENETIC_TREE/IQtree_analysis"+".{ext}", ext=["contree","bionj","ckp.gz","iqtree","log","mldist","splits.nex","treefile"]))
     conda:
         "env/iqtree.yaml"
     shell:
-        " iqtree -s {input.align_seq} --prefix {resultpath}11_PHYLOGENETIC_TREE/IQtree_analysis "
+        "iqtree -s {input.align_seq} -m K80 -B 1000 -T AUTO --prefix {resultpath}11_PHYLOGENETIC_TREE/IQtree_analysis "
 
 rule plotTree:
     message:
         "Plot radial tree using ETE 3."
     input:
         iqtree = rules.buildTree.output.iqtree ,
-        NWK_data = resultpath+"10_QC_ANALYSIS/IQtree_analysis.treefile"
+        NWK_data = resultpath+"11_PHYLOGENETIC_TREE/IQtree_analysis.treefile"
     output:
         tree_pdf = resultpath+"11_PHYLOGENETIC_TREE/RADIAL_tree.pdf"
     conda:
