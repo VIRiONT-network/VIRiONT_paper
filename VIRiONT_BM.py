@@ -16,6 +16,8 @@ trim_max=config['Lmax']
 trim_head=config['headcrop']
 trim_tail=config['tailcrop']
 variant_frequency=config['variantfrequency']
+mincov_cons=config['mincov']
+
 
 #get database name
 filename=os.path.basename(refpath)
@@ -371,7 +373,7 @@ rule generate_consensus:
         fasta_cons = resultpath+"09_CONSENSUS/{barcode}_cons.fasta"
     shell:
         """
-        perl script/pathogen_varcaller_MINION.PL {input.vcf} {variant_frequency} {output.fasta_cons_temp} 
+        perl script/pathogen_varcaller_MINION.PL {input.vcf} {variant_frequency} {output.fasta_cons_temp} {mincov_cons}
         sed  's/$/_{wildcards.barcode}_VIRiONT/' {output.fasta_cons_temp} > {output.fasta_cons}
         """    
 

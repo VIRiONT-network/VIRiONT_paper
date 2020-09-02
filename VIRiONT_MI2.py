@@ -13,6 +13,8 @@ if (resultpath[-1] != "/"):
 	resultpath=resultpath+"/"
 refpath=config['PathToReference']
 variant_frequency=config['variantfrequency']
+mincov_cons=config['mincov']
+
 
 
 #get database name
@@ -199,7 +201,7 @@ rule generate_consensus:
         fasta_cons = resultpath+"09_CONSENSUS/{barcode}/{reference}_cons.fasta"
     shell:
         """
-        perl script/pathogen_varcaller_MINION.PL {input} {variant_frequency} {output.fasta_cons_temp} 200
+        perl script/pathogen_varcaller_MINION.PL {input} {variant_frequency} {output.fasta_cons_temp} {mincov_cons}
         sed  's/>.*/>{wildcards.barcode}_{wildcards.reference}_VIRiONT/' {output.fasta_cons_temp} > {output.fasta_cons}
         """
         
