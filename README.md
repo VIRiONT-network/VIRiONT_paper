@@ -89,7 +89,7 @@ Here is a view on the parameters to check before launching analysis. To change p
 **min_length** : minimal read size required for passing the filtering step.  
 **max_length** : maximal read size required for passing the filtering step.  
 **head** : nucleotid length to be trimmed in 5'.  
-**tail** : nucleotid length to be trimmed in 3'. 
+**tail** : nucleotid length to be trimmed in 3'.  
 **MI_cutoff** : Percentage cutoff for detecting a multiple infection case. cutoff= count(Blastref)/count(majoritaryBlastref)*100. Only concern *VIRiONT_MI* analysis.   
 **Vfreq** : minor variant frequency threshold to call the consensus sequence.  
 **thread_number** : Define number of threads to be used for the analysis.  
