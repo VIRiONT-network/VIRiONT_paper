@@ -418,7 +418,7 @@ rule buildTree:
     conda:
         "env/iqtree.yaml"
     shell:
-        " iqtree -s {input.align_seq} --prefix {resultpath}10_QC_ANALYSIS/IQtree_analysis "
+        " iqtree -s {input.align_seq} --prefix {resultpath}11_PHYLOGENETIC_TREE/IQtree_analysis "
 
 rule plotTree:
     message:
