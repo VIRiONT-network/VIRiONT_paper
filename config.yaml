@@ -21,3 +21,4 @@ tailcrop : 0
 
 #perl
 variantfrequency : 0.5
+mincov : 20
