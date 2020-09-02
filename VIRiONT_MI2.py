@@ -83,7 +83,8 @@ rule pipeline_output:
         #covfile,
         cov_plot = resultpath+"07_COVERAGE/cov_plot.pdf",
         ######## CONSENSUS FILES ########       
-        consfile,
+        #consfile,
+        cons_seq = resultpath+"09_CONSENSUS/all_cons.fasta",
         ######## QC METRIC FILES ########  
         #raw_read = expand(resultpath+"10_QC_ANALYSIS/{barcode}_rawseq.txt",barcode=BARCODE),
         #trimmed_read = expand(resultpath+"10_QC_ANALYSIS/{barcode}_trimmseq.txt",barcode=BARCODE),
