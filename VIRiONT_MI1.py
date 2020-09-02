@@ -168,7 +168,7 @@ rule split_reference:
 
 rule make_db:
 	message:
-		"build blast database from input reference using makeblastdb."
+		"Build blast database from input reference using makeblastdb."
 	input:
 		ref_fasta_file = refpath 
 	output:

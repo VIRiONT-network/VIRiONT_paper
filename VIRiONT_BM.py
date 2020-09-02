@@ -33,29 +33,37 @@ for BC in barcode_list:
 #final output
 rule pipeline_ending:
     input:
-        #merged_file = expand(resultpath+'MERGED/{barcode}_merged.fastq',barcode=BARCODE),
-        #trimmed_file = expand(resultpath+'TRIMMED/{barcode}_trimmed.fastq',barcode=BARCODE),
-        #human_bam = expand(resultpath+"DEHOSTING/{barcode}_human.bam",barcode=BARCODE),
-        #viral_bam = expand(resultpath+"VIRAL/{barcode}_viral.bam",barcode=BARCODE),
-        #viral_fastq = expand(resultpath + 'VIRAL/{barcode}_viral.fastq',barcode=BARCODE),
+        ######## INTERMEDIATE FILES ########
+        #merged_file = expand(resultpath+''01_MERGED/{barcode}_merged.fastq',barcode=BARCODE),
+        #trimmed_file = expand(resultpath+'02_TRIMMED/{barcode}_trimmed.fastq',barcode=BARCODE),
+        #human_bam = expand(resultpath+"03_DEHOSTING/{barcode}_human.bam",barcode=BARCODE),
+		#viral_fastq = expand(resultpath + '03_DEHOSTING/{barcode}_nonhuman.fastq',barcode=BARCODE),
         #converted_fastq = expand(resultpath+"FASTA/{barcode}.fasta", barcode=BARCODE),
-        #ref_rep=resultpath+"REFSEQ/",
-        #database = expand(resultpath+"DB/"+database_name+".{ext}", ext=["nhr", "nin", "nsq"]),
-        #R_data = expand(resultpath+"BLASTN_RESULT/{barcode}_fmt.txt" ,barcode=BARCODE),
+        #ref_rep=resultpath+"00_SUPDATA/REFSEQ/",
+        #database = expand(resultpath+"00_SUPDATA/DB/"+database_name+".{ext}", ext=["nhr", "nin", "nsq"]),
+        #R_data = expand(resultpath+"04_BLASTN_ANALYSIS/{barcode}_fmt.txt" ,barcode=BARCODE),
         #best_ref = expand(resultpath+"04_BLASTN_ANALYSIS/{barcode}_bestref.txt",barcode=BARCODE),
         #merged_filtered = expand(resultpath+"FILTERED/{barcode}_bestref.fastq" ,barcode=BARCODE),
         #conv_filtered_fastq = expand(resultpath+"METRIC/{barcode}_readseq.fasta" ,barcode=BARCODE),
         #spliced_bam = expand(resultpath+"BAM/{barcode}_spliced.bam"  ,barcode=BARCODE),
         #sorted_bam = expand(resultpath+"BAM/{barcode}_sorted.bam" ,barcode=BARCODE),
+        ######## COVERAGE ANALYSIS ########  
         #coverage = expand(resultpath+"COVERAGE/{barcode}.cov" ,barcode=BARCODE), 
         cov_plot = resultpath+"07_COVERAGE/cov_plot.pdf" ,
-        fasta_cons = expand(resultpath+"09_CONSENSUS/{barcode}_cons.fasta",barcode=BARCODE), 
-        #QC
-        summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_table.csv"
+        ######## CONSENSUS FILES ########   
+        #fasta_cons = expand(resultpath+"09_CONSENSUS/{barcode}_cons.fasta",barcode=BARCODE), 
+        cons_seq = resultpath+"09_CONSENSUS/all_cons.fasta",
+        ######## QC METRIC FILES ######## 
+        summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_table.csv",
+        ######## QC PHYLOGENETIC TREE FILES ########  
+        #allseq = resultpath+"10_QC_ANALYSIS/TREE/allseq.fasta",
+        #align_seq = resultpath+"10_QC_ANALYSIS/TREE/align_seq.fasta",
+        #NWK_tree = resultpath+"10_QC_ANALYSIS/TREE/IQtree_analysis.treefile",
+        tree_pdf = resultpath+"10_QC_ANALYSIS/RADIAL_tree.pdf"
 
 rule merging_fastq:
     message:
-        "Merging fastq: path/to/data/*.fastq ==> path/to/results/MERGED/{barcode}_merged.fastq "
+        "Merging fastq into the {wildcards.barcode}/ folder if needed. "
     input: 
         lambda wildcards: expand(datapath+"{barcode}", barcode=BARCODE)
     output: 
@@ -91,7 +99,7 @@ rule index_hg19:
 
 rule trimming_fastq:
     message:
-        "Filtering and trimming fastq using NanoFilt using input parameters."
+        "Filtering and trimming {wildcards.barcode}_merged.fastq using NanoFilt with input parameters."
     input:
         merged_fastq = rules.merging_fastq.output.merged_fastq
     output:
@@ -103,7 +111,7 @@ rule trimming_fastq:
 
 rule hg19_dehosting:
     message:
-        "Aligning fastq on human genome for identifying host reads."
+        "Aligning {wildcards.barcode}_trimmed.fastq on human genome for identifying host reads using minimap2."
     input:
         trimmed_fastq = rules.trimming_fastq.output.trimmed_fastq ,
         ref_file= rules.index_hg19.output.hg19_index
@@ -119,7 +127,7 @@ rule hg19_dehosting:
 
 rule nonhuman_read_extract:
     message:
-        "Extract unaligned reads."
+        "Extract unaligned reads from {wildcards.barcode}_human.bam using samtools."
     input:
         human_bam = rules.hg19_dehosting.output.human_bam
     output:
@@ -131,7 +139,7 @@ rule nonhuman_read_extract:
 
 rule converting_bam_fastq:
     message:
-        "Convert bam to fastq."
+        "Convert {wildcards.barcode}_nonhuman.bam to {wildcards.barcode}_nonhuman.fastq using bedtools."
     input:
         nonhuman_bam = rules.nonhuman_read_extract.output.nonhuman_bam 
     output:
@@ -145,7 +153,7 @@ rule converting_bam_fastq:
 
 rule converting_fastq_fasta:
     message:
-        "Converting fastq==>fasta for blastn research"
+        "Converting {wildcards.barcode}_nonhuman.fastq into {wildcards.barcode}.fasta for blastn research using seqtk."
     input:
         nonhuman_fastq = rules.converting_bam_fastq.output.nonhuman_fastq
     output:
@@ -162,7 +170,7 @@ rule converting_fastq_fasta:
 
 rule split_reference:
     message:
-        "Spliting reference for isolate each genotype sequence."
+        "Spliting the input reference for isolate each genotype sequence if multiple reference are given."
     input:
         ref_file= refpath
     output:
@@ -172,7 +180,7 @@ rule split_reference:
 
 rule make_db:
     message:
-        "build blast database from reference using blastn."
+        "Build blast database from input reference using makeblastdb."
     input:
         ref_fasta_file = refpath 
     output:
@@ -188,7 +196,7 @@ rule make_db:
 
 rule blastn_ref:
     message:
-        "Blasting  on the custom database."
+        "Blasting {wildcards.barcode}.fasta on the custom database."
     input: 
         fasta_file = rules.converting_fastq_fasta.output.converted_fastq,
         database = rules.make_db.output.database ,
@@ -206,7 +214,7 @@ rule blastn_ref:
 
 rule blastn_analysis:
     message:
-        "computing the majoritary reference using R."
+        "Computing the majoritary reference for {wildcards.barcode}_nonhuman.fastq."
     input:
         R_data = rules.blastn_ref.output.R_data ,
         ref_table = rules.split_reference.output.ref_rep,
@@ -229,7 +237,7 @@ rule blastn_analysis:
 
 rule extract_matching_read:
     message:
-        "filtrate read from majoritary reference."
+        "Filtrate read from {wildcards.barcode}_nonhuman.fastq into {wildcards.barcode}_filtered.fastq using seqkit."
     input:
         read_list = rules.blastn_analysis.output.read_list,
         nonhuman_fastq = rules.converting_bam_fastq.output.nonhuman_fastq
@@ -245,7 +253,7 @@ rule extract_matching_read:
 
 rule filtered_fastq_alignemnt:
     message:
-        "alignment on the majoritary reference using minimap2."
+        "Align {wildcards.barcode}_filtered.fastq on the bestreference.fasta using minimap2."
     input:   
         best_ref = rules.blastn_analysis.output.best_ref ,
         merged_filtered = rules.extract_matching_read.output.merged_filtered ,
@@ -263,7 +271,7 @@ rule filtered_fastq_alignemnt:
 
 rule compute_coverage:
     message:
-        "compute coverage from bam using bedtools."
+        "Compute coverage from {wildcards.barcode}_sorted.bam using bedtools."
     input:
         sorted_bam = rules.filtered_fastq_alignemnt.output.spliced_bam
     output:
@@ -277,7 +285,7 @@ rule compute_coverage:
 
 rule plot_coverage:
     message:
-        "Plot coverage summary."
+        "Plot coverage summary using R."
     input:
         cov = expand(rules.compute_coverage.output.coverage,barcode=BARCODE)
     output:
@@ -293,7 +301,7 @@ rule plot_coverage:
 
 rule variant_calling:
     message:
-        "Variant calling on reference aligned bam."
+        "Variant calling on {wildcards.barcode}_sorted.bam aligned bam using samtools."
     input:
         split_ref_path = rules.split_reference.output.ref_rep ,
         sorted_bam = rules.filtered_fastq_alignemnt.output.spliced_bam ,
@@ -310,7 +318,7 @@ rule variant_calling:
 
 rule read_metric:
     message:
-        "Extract read sequence from fastq for metric computation."
+        "Extract read sequence from  MERGED/TRIMMED/DEHOSTED {wildcards.barcode}.fastq for metric computation."
     input:
         raw_fastq = rules.merging_fastq.output.merged_fastq ,
         trimmed_fastq = rules.trimming_fastq.output.trimmed_fastq ,
@@ -331,7 +339,7 @@ rule read_metric:
 
 rule summarize_metric:
     message:
-        "Compute metric and write the summary table."
+        "Compute metric and write the summary table using R."
     input:
         raw_read = expand(rules.read_metric.output.raw_read ,barcode=BARCODE),
         trimmed_read = expand(rules.read_metric.output.trimmed_read ,barcode=BARCODE),
@@ -355,7 +363,7 @@ rule summarize_metric:
 
 rule generate_consensus:
     message:
-        "Generate consensus sequence from variant calling file."
+        "Generate consensus sequence from {wildcards.barcode}_sammpileup.vcf using perl script."
     input:
         vcf = rules.variant_calling.output.vcf,    
     output:
@@ -366,3 +374,61 @@ rule generate_consensus:
         perl script/pathogen_varcaller_MINION.PL {input.vcf} {variant_frequency} {output.fasta_cons_temp} 
         sed  's/$/_{wildcards.barcode}_VIRiONT/' {output.fasta_cons_temp} > {output.fasta_cons}
         """    
+
+rule prepareSEQ:
+    message:
+        "Concatenate all consensus sequences with matched references."
+    input:
+        allcons = expand(rules.generate_consensus.output.fasta_cons,barcode=BARCODE),
+        ref_matched = expand(rules.blastn_analysis.output.best_ref,barcode=BARCODE)
+    output:
+        filtered_refseq_list = temp(resultpath+"10_QC_ANALYSIS/matching_ref.txt"),
+        filtered_refseq = temp(resultpath+"10_QC_ANALYSIS/matching_ref.fasta"),
+        cons_seq = resultpath+"09_CONSENSUS/all_cons.fasta",
+        allseq = temp(resultpath+"10_QC_ANALYSIS/allseq.fasta"),
+    conda:
+        "env/seqkit.yaml"   
+    shell:
+        """
+        cat {input.ref_matched} | sort | uniq > {output.filtered_refseq_list}
+		seqkit grep --pattern-file {output.filtered_refseq_list} {refpath} > {output.filtered_refseq}
+        cat {input.allcons} > {output.cons_seq}
+        cat {output.filtered_refseq} {output.cons_seq} > {output.allseq}
+        """
+    
+rule sequenceAlign:
+    message:
+        "Multiple Alignment on all sequences using Muscle."
+    input:
+        allseq = rules.prepareSEQ.output.allseq
+    output:
+        align_seq = temp(resultpath+"10_QC_ANALYSIS/align_seq.fasta")
+    conda:
+        "env/muscle.yaml"
+    shell:
+        "muscle -in {input} -out {output} -maxiters 2"
+
+rule buildTree:
+    message:
+        "Build Newick tree from alignment using iqtree."
+    input:
+        align_seq = rules.sequenceAlign.output.align_seq,
+    output:
+        iqtree = temp(expand(resultpath+"10_QC_ANALYSIS/IQtree_analysis"+".{ext}", ext=["bionj","ckp.gz","iqtree","log","mldist","model.gz","treefile"]))
+    conda:
+        "env/iqtree.yaml"
+    shell:
+        " iqtree -s {input.align_seq} --prefix {resultpath}10_QC_ANALYSIS/IQtree_analysis "
+
+rule plotTree:
+    message:
+        "Plot radial tree using ETE 3."
+    input:
+        iqtree = rules.buildTree.output.iqtree ,
+        NWK_data = resultpath+"10_QC_ANALYSIS/IQtree_analysis.treefile"
+    output:
+        tree_pdf = resultpath+"10_QC_ANALYSIS/RADIAL_tree.pdf"
+    conda:
+        "env/ETE3.yaml"
+    shell:
+        "python3 script/makeTREE.py {input.NWK_data} {output.tree_pdf} "
