@@ -6,10 +6,10 @@ use File::Copy;
 $reportfile = shift;
 $MIXED_CUTOFF = shift;
 $consensusfile = shift;
- # Minimum fraction of minor population to call mixed IUPAC bases (original : 0.2)
+$MINCOV = shift; # Minimum coverage to not call a "N" (original : 15)
 
 #Parameters etc
-$MINCOV = 10; # Minimum coverage to not call a "N" (original : 15)
+
 $MINCOV_OUTPUT = 10; # Minimum mean coverage to output any consensus at all (original : 25)
 $MINCOV_MIXED = 20; # Minimum coverage to call mixed IUPAC bases (original : 40)
 $MINCOV_INDEL = 40; # Minimum coverage to call indels (original : 40)
