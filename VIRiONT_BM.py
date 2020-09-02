@@ -56,10 +56,10 @@ rule pipeline_ending:
         ######## QC METRIC FILES ######## 
         summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_table.csv",
         ######## QC PHYLOGENETIC TREE FILES ########  
-        #allseq = resultpath+"10_QC_ANALYSIS/TREE/allseq.fasta",
-        #align_seq = resultpath+"10_QC_ANALYSIS/TREE/align_seq.fasta",
-        #NWK_tree = resultpath+"10_QC_ANALYSIS/TREE/IQtree_analysis.treefile",
-        tree_pdf = resultpath+"10_QC_ANALYSIS/RADIAL_tree.pdf"
+        #allseq = resultpath+"11_PHYLOGENETIC_TREE/allseq.fasta",
+        #align_seq = resultpath+"11_PHYLOGENETIC_TREE/align_seq.fasta",
+        #NWK_tree = resultpath+"11_PHYLOGENETIC_TREE/IQtree_analysis.treefile",
+        tree_pdf = resultpath+"11_PHYLOGENETIC_TREE/RADIAL_tree.pdf"
 
 rule merging_fastq:
     message:
@@ -382,10 +382,10 @@ rule prepareSEQ:
         allcons = expand(rules.generate_consensus.output.fasta_cons,barcode=BARCODE),
         ref_matched = expand(rules.blastn_analysis.output.best_ref,barcode=BARCODE)
     output:
-        filtered_refseq_list = temp(resultpath+"10_QC_ANALYSIS/matching_ref.txt"),
-        filtered_refseq = temp(resultpath+"10_QC_ANALYSIS/matching_ref.fasta"),
+        filtered_refseq_list = temp(resultpath+"11_PHYLOGENETIC_TREE/matching_ref.txt"),
+        filtered_refseq = temp(resultpath+"11_PHYLOGENETIC_TREE/matching_ref.fasta"),
         cons_seq = resultpath+"09_CONSENSUS/all_cons.fasta",
-        allseq = temp(resultpath+"10_QC_ANALYSIS/allseq.fasta"),
+        allseq = temp(resultpath+"11_PHYLOGENETIC_TREE/allseq.fasta"),
     conda:
         "env/seqkit.yaml"   
     shell:
@@ -402,7 +402,7 @@ rule sequenceAlign:
     input:
         allseq = rules.prepareSEQ.output.allseq
     output:
-        align_seq = temp(resultpath+"10_QC_ANALYSIS/align_seq.fasta")
+        align_seq = temp(resultpath+"11_PHYLOGENETIC_TREE/align_seq.fasta")
     conda:
         "env/muscle.yaml"
     shell:
@@ -414,7 +414,7 @@ rule buildTree:
     input:
         align_seq = rules.sequenceAlign.output.align_seq,
     output:
-        iqtree = temp(expand(resultpath+"10_QC_ANALYSIS/IQtree_analysis"+".{ext}", ext=["bionj","ckp.gz","iqtree","log","mldist","model.gz","treefile"]))
+        iqtree = temp(expand(resultpath+"11_PHYLOGENETIC_TREE/IQtree_analysis"+".{ext}", ext=["bionj","ckp.gz","iqtree","log","mldist","model.gz","treefile"]))
     conda:
         "env/iqtree.yaml"
     shell:
@@ -425,9 +425,9 @@ rule plotTree:
         "Plot radial tree using ETE 3."
     input:
         iqtree = rules.buildTree.output.iqtree ,
-        NWK_data = resultpath+"10_QC_ANALYSIS/IQtree_analysis.treefile"
+        NWK_data = resultpath+"11_PHYLOGENETIC_TREE/IQtree_analysis.treefile"
     output:
-        tree_pdf = resultpath+"10_QC_ANALYSIS/RADIAL_tree.pdf"
+        tree_pdf = resultpath+"11_PHYLOGENETIC_TREE/RADIAL_tree.pdf"
     conda:
         "env/ETE3.yaml"
     shell:
