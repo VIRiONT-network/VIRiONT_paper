@@ -374,7 +374,7 @@ rule generate_consensus:
     shell:
         """
         perl script/pathogen_varcaller_MINION.PL {input.vcf} {variant_frequency} {output.fasta_cons_temp} {mincov_cons}
-        sed  's/$/_{wildcards.barcode}_VIRiONT/' {output.fasta_cons_temp} > {output.fasta_cons}
+        sed  's/>.*/>{wildcards.barcode}_VIRiONT/' {output.fasta_cons_temp} > {output.fasta_cons}
         """    
 
 rule prepareSEQ:
