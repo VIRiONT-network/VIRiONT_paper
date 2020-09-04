@@ -301,7 +301,7 @@ rule buildTree:
     input:
         align_seq = rules.sequenceAlign.output.align_seq,
     output:
-        iqtree = temp(expand(resultpath+"11_PHYLOGENETIC_TREE/IQtree_analysis"+".{ext}", ext=["contree","bionj","ckp.gz","iqtree","log","mldist","splits.nex","treefile"]))
+        iqtree = temp(expand(resultpath+"11_PHYLOGENETIC_TREE/IQtree_analysis"+".{ext}", ext=["contree","bionj","ckp.gz","iqtree","log","mldist","splits.nex"]))
     conda:
         "env/iqtree.yaml"
     shell:
