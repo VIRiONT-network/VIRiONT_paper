@@ -17,6 +17,7 @@ trim_head=config['headcrop']
 trim_tail=config['tailcrop']
 variant_frequency=config['variantfrequency']
 mincov_cons=config['mincov']
+thread_num_blast=int(config['threadnumblast'])
 
 
 #get database name
@@ -204,7 +205,7 @@ rule blastn_ref:
         database = rules.make_db.output.database ,
     output:
         R_data = resultpath+"04_BLASTN_ANALYSIS/{barcode}_fmt.txt" 
-    threads: 4
+    threads: thread_num_blast
     params:
         database_path = resultpath+"00_SUPDATA/DB/"+database_name    
     conda:
