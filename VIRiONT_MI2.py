@@ -14,7 +14,11 @@ if (resultpath[-1] != "/"):
 refpath=config['PathToReference']
 variant_frequency=config['variantfrequency']
 mincov_cons=config['mincov']
-
+trim_min=config['Lmin']
+trim_max=config['Lmax']
+trim_head=config['headcrop']
+trim_tail=config['tailcrop']
+MI_cutoff=config['multiinf']
 
 
 #get database name
@@ -101,7 +105,30 @@ rule pipeline_output:
         #allseq = resultpath+"11_PHYLOGENETIC_TREE/allseq.fasta",
         #align_seq = resultpath+"11_PHYLOGENETIC_TREE/align_seq.fasta",
         #NWK_tree = resultpath+"11_PHYLOGENETIC_TREE/IQtree_analysis.treefile",
-        tree_pdf = resultpath+"11_PHYLOGENETIC_TREE/RADIAL_tree.pdf"
+        tree_pdf = resultpath+"11_PHYLOGENETIC_TREE/RADIAL_tree.pdf",
+        report= resultpath+"00_SUPDATA/param_file.txt
+
+
+rule write_param_used:
+    output:
+        report= resultpath+"00_SUPDATA/param_file.txt
+    run:
+        textfile=open(resultpath+"00_SUPDATA/param_file.txt","w")
+        textfile.write("######################\n")
+        textfile.write("#### PARAMS USED #####\n")
+        textfile.write("######################\n")
+        textfile.write("data repository:"+datatpath+"\n")
+        textfile.write("result repository:"+resultpath+"\n")
+        textfile.write("database used:"+refpath+"\n")
+        textfile.write("read minlength:"+trim_min+"\n")
+        textfile.write("read maxlength:"+trim_max+"\n")
+        textfile.write("read 5' trimming length:"+trim_head+"\n")
+        textfile.write("read 3' trimming length:"+trim_tail+"\n")
+        textfile.write("min coverage for consensus generation:"+mincov_cons+"\n")
+        textfile.write("multi-infection cutoff:"+MI_cutoff+"\n")
+        textfile.write("variant frequency:"+variant_frequency+"\n")
+        textfile.close()
+
 
 rule getfastqlist:
     message:
@@ -202,7 +229,7 @@ rule generate_consensus:
     shell:
         """
         perl script/pathogen_varcaller_MINION.PL {input} {variant_frequency} {output.fasta_cons_temp} {mincov_cons}
-        sed  's/>.*/>{wildcards.barcode}_{wildcards.reference}_VIRiONT/' {output.fasta_cons_temp} > {output.fasta_cons}
+        sed  's/>.*/>{wildcards.barcode}_ONT{variant_frequency}/' {output.fasta_cons_temp} > {output.fasta_cons}
         """
         
 rule read_metric:

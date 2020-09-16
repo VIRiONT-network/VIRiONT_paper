@@ -8,7 +8,7 @@ PathToResult : "/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/RESULTS/"
 
 #Indicate fasta file containing references
 PathToReference : "ref/HBV_REF.fasta"
-maj
+
 #MULTI INFECTION THRESHOLD
 multiinf : 10
 

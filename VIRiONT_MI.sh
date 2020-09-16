@@ -8,9 +8,9 @@
 #######################    GENERAL PARAMETERS    ###############################
 ################################################################################
 #fastq location / Define path where the "barcode*" rep are stored
-data_loc="/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/DATA_HBV_PARIS" 
+data_loc="/srv/nfs/ngs-stockage/NGS_Virologie/CCharre/MinION_HBV/VIRiONT_analyses_ARTICLE_VHB" 
 #output location / Define path where storing analysis results 
-result_loc="/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/TEST_MI/" 
+result_loc="/srv/nfs/ngs-stockage/NGS_Virologie/CCharre/MinION_HBV/VIRiONT_analyses_ARTICLE_FLAIR/Analyse_GT_T500_3500_MI20" 
 #custom reference file to use /  Path to fastafile containing reference sequences for blast
 ref_loc="ref/HBV_REF.fasta" 
 #core number / Define number of threads to use for the analysis
@@ -23,7 +23,7 @@ mem_cost=32000
 #################    TRIMMING/FILTERING PARAMETERS    ##########################
 ################################################################################
 #min length for read filtering
-min_length=1000
+min_length=500
 #max length for read filtering
 max_length=3500
 #Remove N nucleotide for primer 5'
@@ -60,7 +60,6 @@ snakemake -s VIRiONT_MI1.py \
     --config PathToData=$data_loc \
              PathToResult=$result_loc \
              PathToReference=$ref_loc \
-             AnalysisTable=$ref_table \
              Lmin=$min_length \
              Lmax=$max_length \
              headcrop=$head \
@@ -75,6 +74,11 @@ snakemake -s VIRiONT_MI2.py \
              PathToResult=$result_loc \
              PathToReference=$ref_loc \
              variantfrequency=$Vfreq \
-             mincov=$mincov
+             mincov=$mincov \
+             Lmin=$min_length \
+             Lmax=$max_length \
+             headcrop=$head \
+             tailcrop=$tail \
+             multiinf=$MI_cutoff
 
 
