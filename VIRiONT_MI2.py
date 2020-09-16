@@ -120,13 +120,13 @@ rule write_param_used:
         textfile.write("data repository:"+datapath+"\n")
         textfile.write("result repository:"+resultpath+"\n")
         textfile.write("database used:"+refpath+"\n")
-        textfile.write("read minlength:"+trim_min+"\n")
-        textfile.write("read maxlength:"+trim_max+"\n")
-        textfile.write("read 5' trimming length:"+trim_head+"\n")
-        textfile.write("read 3' trimming length:"+trim_tail+"\n")
-        textfile.write("min coverage for consensus generation:"+mincov_cons+"\n")
-        textfile.write("multi-infection cutoff:"+MI_cutoff+"\n")
-        textfile.write("variant frequency:"+variant_frequency+"\n")
+        textfile.write("read minlength:"+str(trim_min)+"\n")
+        textfile.write("read maxlength:"+str(trim_max)+"\n")
+        textfile.write("read 5' trimming length:"+str(trim_head)+"\n")
+        textfile.write("read 3' trimming length:"+str(trim_tail)+"\n")
+        textfile.write("min coverage for consensus generation:"+str(mincov_cons)+"\n")
+        textfile.write("multi-infection cutoff:"+str(MI_cutoff)+"\n")
+        textfile.write("variant frequency:"+str(variant_frequency)+"\n")
         textfile.close()
 
 
@@ -229,7 +229,7 @@ rule generate_consensus:
     shell:
         """
         perl script/pathogen_varcaller_MINION.PL {input} {variant_frequency} {output.fasta_cons_temp} {mincov_cons}
-        sed  's/>.*/>{wildcards.barcode}_ONT{variant_frequency}/' {output.fasta_cons_temp} > {output.fasta_cons}
+        sed  's/>.*/>{wildcards.barcode}_{wildcards.reference}_ONT{variant_frequency}/' {output.fasta_cons_temp} > {output.fasta_cons}
         """
         
 rule read_metric:
