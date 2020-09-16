@@ -106,12 +106,12 @@ rule pipeline_output:
         #align_seq = resultpath+"11_PHYLOGENETIC_TREE/align_seq.fasta",
         #NWK_tree = resultpath+"11_PHYLOGENETIC_TREE/IQtree_analysis.treefile",
         tree_pdf = resultpath+"11_PHYLOGENETIC_TREE/RADIAL_tree.pdf",
-        report= resultpath+"00_SUPDATA/param_file.txt
+        report = resultpath+"00_SUPDATA/param_file.txt"
 
 
 rule write_param_used:
     output:
-        report= resultpath+"00_SUPDATA/param_file.txt
+        report= resultpath+"00_SUPDATA/param_file.txt"
     run:
         textfile=open(resultpath+"00_SUPDATA/param_file.txt","w")
         textfile.write("######################\n")
