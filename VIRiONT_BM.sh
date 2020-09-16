@@ -60,8 +60,7 @@ snakemake -s VIRiONT_BM.py \
              headcrop=$head \
              tailcrop=$tail \
              variantfrequency=$Vfreq \
-             mincov=$mincov \
-             threadnumblast=$thread_number
+             mincov=$mincov 
 ################################################################################
 
 #snakemake -s VIRiONT.py --rulegraph \

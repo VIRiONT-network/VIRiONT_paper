@@ -17,7 +17,6 @@ trim_max=config['Lmax']
 trim_head=config['headcrop']
 trim_tail=config['tailcrop']
 MI_cutoff=config['multiinf']
-thread_num_blast=int(config['threadnumblast'])
 
 #get database name
 filename=os.path.basename(refpath)
@@ -191,7 +190,7 @@ rule blastn_ref:
 		database = rules.make_db.output.database ,
 	output:
 		R_data = resultpath+"04_BLASTN_ANALYSIS/{barcode}_fmt.txt" 
-	threads: thread_num_blast
+	threads: 4
 	params:
 		database_path = resultpath+"00_SUPDATA/DB/"+database_name    
 	conda:
