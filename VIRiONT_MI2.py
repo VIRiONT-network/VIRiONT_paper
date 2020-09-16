@@ -117,7 +117,7 @@ rule write_param_used:
         textfile.write("######################\n")
         textfile.write("#### PARAMS USED #####\n")
         textfile.write("######################\n")
-        textfile.write("data repository:"+datatpath+"\n")
+        textfile.write("data repository:"+datapath+"\n")
         textfile.write("result repository:"+resultpath+"\n")
         textfile.write("database used:"+refpath+"\n")
         textfile.write("read minlength:"+trim_min+"\n")
