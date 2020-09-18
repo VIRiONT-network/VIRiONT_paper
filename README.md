@@ -18,7 +18,7 @@ barcoding/barcode24/*.fastq
 For each barcode, you can find herein the global workflow:  
 **Step1** => merging (if several fastq in the barcode rep) and trimming fastq using given parameters.  
 **Step2** => removing human reads from fastq files.  
-**Step3** => blastn research on each reference for get the best maching reference.     
+**Step3** => blastn research on each reference for get the best maching reference(s).     
 **Step4** => build consensus sequence on the best matching reference after generating alignement files with minimap2 (option splice)    
 
 # workflow dag
@@ -69,7 +69,7 @@ conda create -c bioconda -c conda-forge -n VIRiONT_env snakemake-minimal pandas
 ```
 Step 3 : download latest version of the pipeline using git command:  
 ```
-git clone https://github.com/HadrienRegue/VIRiONT.git
+git clone https://github.com/VIRiONT-network/VIRiONT.git
 ```
 Step 4 : launch the pipeline by executing:  
 ```
