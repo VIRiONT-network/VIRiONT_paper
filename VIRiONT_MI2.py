@@ -3,7 +3,7 @@ import os
 import glob
 import pandas as pd
 
-configfile : "config.yaml"
+configfile : "config/config.yaml"
 
 datapath=config['PathToData']
 if (datapath[-1] != "/"):

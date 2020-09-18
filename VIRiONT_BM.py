@@ -2,7 +2,7 @@
 import os
 import glob
 
-configfile : "config.yaml"
+configfile : "config/config.yaml"
 
 datapath=config['PathToData']
 if (datapath[-1] != "/"):
