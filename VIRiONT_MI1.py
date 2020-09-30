@@ -95,7 +95,7 @@ rule trimming_fastq:
 	conda:
 		"env/nanofilt.yaml"
 	shell:
-		"NanoFilt --quality 10 --length {trim_min} --maxlength {trim_max} {input} > {output} "
+		"NanoFilt --length {trim_min} --maxlength {trim_max} {input} > {output} "
 
 rule hg19_dehosting:
 	message:
