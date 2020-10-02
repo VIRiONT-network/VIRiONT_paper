@@ -14,8 +14,8 @@ if (resultpath[-1] != "/"):
 refpath=config['PathToReference']
 trim_min=config['Lmin']
 trim_max=config['Lmax']
-trim_head=config['headcrop']
-trim_tail=config['tailcrop']
+trim_head=int(config['headcrop'])
+trim_tail=int(config['tailcrop'])
 MI_cutoff=config['multiinf']
 
 #get database name
@@ -95,7 +95,7 @@ rule trimming_fastq:
 	conda:
 		"env/nanofilt.yaml"
 	shell:
-		"NanoFilt --length {trim_min} --maxlength {trim_max} {input} > {output} "
+		"NanoFilt --length {trim_min} --maxlength {trim_max} --headcrop {trim_head} --tailcrop {trim_tail} {input}   > {output} "
 
 rule hg19_dehosting:
 	message:
