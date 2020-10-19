@@ -14,9 +14,28 @@ if (resultpath[-1] != "/"):
 refpath=config['PathToReference']
 trim_min=config['Lmin']
 trim_max=config['Lmax']
-trim_head=int(config['headcrop'])
-trim_tail=int(config['tailcrop'])
+trim_head=config['headcrop']
+trim_tail=config['tailcrop']
 MI_cutoff=config['multiinf']
+
+
+#NanoFilt Command construction with input parameters
+if (trim_min>0):
+	lengmin="--length "+str(trim_min)
+else:
+	lengmin=""
+if (trim_max>0):
+	lengmax="--maxlength "+str(trim_max)
+else:
+	lengmax=""
+if (trim_head>0):
+	head="--headcrop "+str(trim_head)
+else:
+	head=""
+if (trim_tail>0):
+	tail="--tailcrop "+str(trim_tail)
+else:
+	tail=""
 
 #get database name
 filename=os.path.basename(refpath)
@@ -36,7 +55,7 @@ rule pipeline_ending:
 	input:
 		######## INTERMEDIATE FILES ########
 		#database = expand(resultpath+"00_SUPDATA/DB/"+database_name+".{ext}", ext=["nhr", "nin", "nsq"]),
-		#merged_file = expand(resultpath+'01_MERGED/{barcode}_merged.fastq',barcode=BARCODE),
+		merged_file = expand(resultpath+'01_MERGED/{barcode}_merged.fastq',barcode=BARCODE),
 		#trimmed_file = expand(resultpath+'02_TRIMMED/{barcode}_trimmed.fastq',barcode=BARCODE),
 		#human_bam = expand(resultpath+"03_DEHOSTING/{barcode}_human.bam",barcode=BARCODE),
 		#viral_fastq = expand(resultpath + '03_DEHOSTING/{barcode}_nonhuman.fastq',barcode=BARCODE),
@@ -44,22 +63,28 @@ rule pipeline_ending:
 		#ref_rep=resultpath+"00_SUPDATA/REFSEQ/",
 		#R_data = expand(resultpath+"04_BLASTN_ANALYSIS/{barcode}_fmt.txt" ,barcode=BARCODE),
 		######## FINAL OUTPUTS ########		
-		blastn_result=expand(resultpath+"04_BLASTN_ANALYSIS/{barcode}_blastnR.tsv",barcode=BARCODE),
-		summ_multiinf = resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv",
+		#blastn_result=expand(resultpath+"04_BLASTN_ANALYSIS/{barcode}_blastnR.tsv",barcode=BARCODE),
+		#summ_multiinf = resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv",
 
 
 rule merging_fastq:
 	message:
-		"Merging fastq into the {wildcards.barcode}/ folder if needed. "
+		"Merging fastq/fastq.gz files from /datapath/{wildcards.barcode}/ to the /outputpath/01_MERGED/ folder."
 	input: 
-		lambda wildcards: expand(datapath+"{barcode}", barcode=BARCODE)
+		barcode_rep = datapath+"{barcode}/",
 	output: 
 		merged_fastq = resultpath+"01_MERGED/{barcode}_merged.fastq"  
-	params:
-		path = datapath
 	shell: 
 		"""
-		cat {params.path}{wildcards.barcode}/* > {output}
+		gz_file_num=`find {input.barcode_rep} -name "*.gz" | wc -l`
+		echo $gz_file_num
+		if [ $gz_file_num -gt 0 ]
+		then
+        	zcat {input.barcode_rep}* > {output}
+		else
+        	cat {input.barcode_rep}* > {output}
+		fi
+		#cat {input.barcode_rep}* > {output}
 		"""
 
 rule get_hg19:
@@ -95,7 +120,7 @@ rule trimming_fastq:
 	conda:
 		"env/nanofilt.yaml"
 	shell:
-		"NanoFilt --length {trim_min} --maxlength {trim_max} --headcrop {trim_head} --tailcrop {trim_tail} {input}   > {output} "
+		"NanoFilt {lengmin} {lengmax} {head} {tail} {input} > {output} "
 
 rule hg19_dehosting:
 	message:
