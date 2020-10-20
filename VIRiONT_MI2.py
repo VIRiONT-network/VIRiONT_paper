@@ -147,7 +147,7 @@ rule extract_matching_read:
 		"Filtrate read from {wildcards.barcode}_nonhuman.fastq into {wildcards.barcode}/{wildcards.reference}_filtered.fastq using seqkit."
 	input:
 		read_list = rules.getfastqlist.output.fastqlist,
-		nonhuman_fastq = resultpath + '03_DEHOSTING/{barcode}_nonhuman.fastq'      
+		nonhuman_fastq = resultpath + '03_FILTERED_TRIMMED/{barcode}_filtered_trimmed.fastq'      
 	output:
 		merged_filtered = resultpath +"05_REFFILTERED_FASTQ/{barcode}/{reference}_filtered.fastq" 
 	conda:
@@ -237,8 +237,8 @@ rule read_metric:
         "Extract read sequence from  MERGED/TRIMMED/DEHOSTED {wildcards.barcode}.fastq for metric computation."
     input:
         raw_fastq = resultpath+"01_MERGED/{barcode}_merged.fastq"  ,
-        trimmed_fastq = resultpath+"02_TRIMMED/{barcode}_trimmed.fastq" ,
-        dehosted_fastq = resultpath + '03_DEHOSTING/{barcode}_nonhuman.fastq' 
+        trimmed_fastq = resultpath+"03_FILTERED_TRIMMED/{barcode}_filtered_trimmed.fastq" ,
+        dehosted_fastq = resultpath + '02_DEHOSTING/{barcode}_meta.fastq' 
     output:
         raw_read = temp(resultpath+"10_QC_ANALYSIS/{barcode}_rawseq.txt"),
         trimmed_read = temp(resultpath+"10_QC_ANALYSIS/{barcode}_trimmseq.txt"),
