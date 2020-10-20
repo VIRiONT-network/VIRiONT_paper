@@ -8,11 +8,11 @@
 #######################    GENERAL PARAMETERS    ###############################
 ################################################################################
 #fastq location / Define path where the "barcode*" rep are stored
-data_loc="/srv/nfs/ngs-stockage/NGS_Virologie/CCharre/MinION_HBV/VIRiONT_analyses_ARTICLE_VHB" 
+data_loc="/srv/nfs/ngs-stockage/NGS_Virologie/CCharre/MinION_HDV/VIRiONT_analyses/" 
 #output location / Define path where storing analysis results 
-result_loc="/srv/nfs/ngs-stockage/NGS_Virologie/CCharre/MinION_HBV/VIRiONT_analyses_ARTICLE_FLAIR/Analyse_GT_T500_3500_MI20" 
+result_loc="/srv/nfs/ngs-stockage/NGS_Virologie/CCharre/MinION_HDV/VIRiONT_analyses/VIRiONT_MI30_GT_500-2000_PT_20X_ALLVF" 
 #custom reference file to use /  Path to fastafile containing reference sequences for blast
-ref_loc="ref/HBV_REF.fasta" 
+ref_loc="ref/ICTVHDV.fasta" 
 #core number / Define number of threads to use for the analysis
 thread_number=8
 #memory cost in mb / Define number of threads to use for the analysis
@@ -25,18 +25,18 @@ mem_cost=32000
 #min length for read filtering
 min_length=500
 #max length for read filtering
-max_length=3500
+max_length=2000
 #Remove N nucleotide for primer 5'
-head=0
+head=23
 #Remove N nucleotide for primer 3'
-tail=0
+tail=23
 ################################################################################
 
 ################################################################################
 ######################    CONSENSUS PARAMETERS    ##############################
 ################################################################################
 #minor variant frequency
-Vfreq=0.5 
+Vfreq=0.50
 #minimun coverage necessary to generate a consensus / N is called if below threshold
 mincov=20
 ################################################################################
@@ -45,15 +45,14 @@ mincov=20
 ###################    MULTI-INFECTION PARAMETER    ############################
 ################################################################################
 #Multi infection threshold cutoff in percent / cutoff=count(Blastref_reads)/count(majoritaryBlastref_reads)*100
-MI_cutoff=20
+MI_cutoff=30
 ################################################################################
-
 
 
 ################################################################################
 #########################    LAUNCH SNAKEMAKE    ###############################
 ################################################################################
-snakemake -s VIRiONT_MI1.py \
+snakemake -s VIRiONT_MI1.py -p  \
     --use-conda \
     --core $thread_number \
     --resources mem_mb=$mem_cost \
@@ -66,7 +65,7 @@ snakemake -s VIRiONT_MI1.py \
              tailcrop=$tail \
              multiinf=$MI_cutoff
 
-snakemake -s VIRiONT_MI2.py \
+snakemake -s VIRiONT_MI2.py -p \
     --use-conda \
     --core $thread_number \
     --resources mem_mb=$mem_cost \
@@ -80,5 +79,7 @@ snakemake -s VIRiONT_MI2.py \
              headcrop=$head \
              tailcrop=$tail \
              multiinf=$MI_cutoff
+
+chmod -R 777 $result_loc
 
 
