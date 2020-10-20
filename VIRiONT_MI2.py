@@ -193,7 +193,7 @@ rule plot_coverage:
     input:
         cov = covfile
     output:
-        cov_sum = temp(resultpath+"07_COVERAGE/cov_sum.cov") ,
+        cov_sum = resultpath+"07_COVERAGE/cov_sum.cov" ,
         cov_plot = resultpath+"07_COVERAGE/cov_plot.pdf"
     conda:
         "env/Renv.yaml" 
