@@ -55,16 +55,16 @@ rule pipeline_ending:
 	input:
 		######## INTERMEDIATE FILES ########
 		#database = expand(resultpath+"00_SUPDATA/DB/"+database_name+".{ext}", ext=["nhr", "nin", "nsq"]),
-		merged_file = expand(resultpath+'01_MERGED/{barcode}_merged.fastq',barcode=BARCODE),
-		#trimmed_file = expand(resultpath+'02_TRIMMED/{barcode}_trimmed.fastq',barcode=BARCODE),
-		#human_bam = expand(resultpath+"03_DEHOSTING/{barcode}_human.bam",barcode=BARCODE),
-		#viral_fastq = expand(resultpath + '03_DEHOSTING/{barcode}_nonhuman.fastq',barcode=BARCODE),
+		#merged_file = expand(resultpath+'01_MERGED/{barcode}_merged.fastq',barcode=BARCODE),
+		#human_bam = expand(resultpath+"02_DEHOSTING/{barcode}_human.bam",barcode=BARCODE),
+		#meta_fastq = expand(resultpath + '02_DEHOSTING/{barcode}_meta.fastq',barcode=BARCODE),
+		#trimmed_file = expand(resultpath+'03_FILTERED_TRIMMED/{barcode}_filtered_trimmed.fastq',barcode=BARCODE),
 		#converted_fastq = expand(resultpath+"FASTA/{barcode}.fasta", barcode=BARCODE),
 		#ref_rep=resultpath+"00_SUPDATA/REFSEQ/",
 		#R_data = expand(resultpath+"04_BLASTN_ANALYSIS/{barcode}_fmt.txt" ,barcode=BARCODE),
 		######## FINAL OUTPUTS ########		
-		#blastn_result=expand(resultpath+"04_BLASTN_ANALYSIS/{barcode}_blastnR.tsv",barcode=BARCODE),
-		#summ_multiinf = resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv",
+		blastn_result=expand(resultpath+"04_BLASTN_ANALYSIS/{barcode}_blastnR.tsv",barcode=BARCODE),
+		summ_multiinf = resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv",
 
 
 rule merging_fastq:
@@ -77,7 +77,6 @@ rule merging_fastq:
 	shell: 
 		"""
 		gz_file_num=`find {input.barcode_rep} -name "*.gz" | wc -l`
-		echo $gz_file_num
 		if [ $gz_file_num -gt 0 ]
 		then
         	zcat {input.barcode_rep}* > {output}
@@ -110,32 +109,20 @@ rule index_hg19:
 	shell:
 		"minimap2 -d {output} {input}"
 
-rule trimming_fastq:
-	message:
-		"Filtering and trimming {wildcards.barcode}_merged.fastq using NanoFilt with input parameters."
-	input:
-		merged_fastq = rules.merging_fastq.output.merged_fastq
-	output:
-		trimmed_fastq = resultpath+"02_TRIMMED/{barcode}_trimmed.fastq"
-	conda:
-		"env/nanofilt.yaml"
-	shell:
-		"NanoFilt {lengmin} {lengmax} {head} {tail} {input} > {output} "
-
 rule hg19_dehosting:
 	message:
-		"Aligning {wildcards.barcode}_trimmed.fastq on human genome for identifying host reads using minimap2."
+		"Aligning /outputpath/01_MERGED/{wildcards.barcode}_merged.fastq on human genome for identifying host reads using minimap2."
 	input:
-		trimmed_fastq = rules.trimming_fastq.output.trimmed_fastq ,
+		merged_fastq = rules.merging_fastq.output.merged_fastq ,
 		ref_file= rules.index_hg19.output.hg19_index
 	output:
-		human_bam = temp(resultpath+"03_DEHOSTING/{barcode}_human.bam")
+		human_bam = temp(resultpath+"02_DEHOSTING/{barcode}_human.bam")
 	conda:
 		"env/minimap2.yaml" 
 	threads: 4
 	shell:
 		"""
-		minimap2 -t {threads} -ax splice {input.ref_file} {input.trimmed_fastq}  | samtools view -b > {output.human_bam}
+		minimap2 -t {threads} -ax splice {input.ref_file} {input.merged_fastq}  | samtools view -b > {output.human_bam}
 		"""    
 
 rule nonhuman_read_extract:
@@ -144,7 +131,7 @@ rule nonhuman_read_extract:
 	input:
 		human_bam = rules.hg19_dehosting.output.human_bam
 	output:
-		nonhuman_bam = resultpath+"03_DEHOSTING/{barcode}_nonhuman.bam"
+		nonhuman_bam = temp(resultpath+"02_DEHOSTING/{barcode}_meta.bam")
 	conda:
 		"env/samtools.yaml" 
 	shell: 
@@ -156,7 +143,7 @@ rule converting_bam_fastq:
 	input:
 		nonhuman_bam = rules.nonhuman_read_extract.output.nonhuman_bam 
 	output:
-		nonhuman_fastq = resultpath + '03_DEHOSTING/{barcode}_nonhuman.fastq',
+		nonhuman_fastq = resultpath + '02_DEHOSTING/{barcode}_meta.fastq',
 	conda:
 		"env/bedtools.yaml"
 	shell:
@@ -164,15 +151,26 @@ rule converting_bam_fastq:
 		bedtools bamtofastq  -i {input.nonhuman_bam} -fq {output.nonhuman_fastq} 
 		"""
 
+rule trimming_fastq:
+	message:
+		"Filtering and trimming {wildcards.barcode}_meta.fastq using NanoFilt with input parameters."
+	input:
+		meta_fastq = rules.converting_bam_fastq.output.nonhuman_fastq
+	output:
+		trimmed_fastq = resultpath+"03_FILTERED_TRIMMED/{barcode}_filtered_trimmed.fastq"
+	conda:
+		"env/nanofilt.yaml"
+	shell:
+		"NanoFilt {lengmin} {lengmax} {head} {tail} {input} > {output} "
+
 rule converting_fastq_fasta:
 	message:
-		"Converting {wildcards.barcode}_nonhuman.fastq into {wildcards.barcode}.fasta for blastn research using seqtk."
+		"Converting {wildcards.barcode}_meta.fastq into {wildcards.barcode}.fasta for blastn research using seqtk."
 	input:
-		nonhuman_fastq = rules.converting_bam_fastq.output.nonhuman_fastq
+		nonhuman_fastq = rules.trimming_fastq.output.trimmed_fastq
 	output:
 		converted_fastq = temp(resultpath+"FASTA/{barcode}.fasta" ),
 		converted_fastq_temp = temp(resultpath+"FASTA/{barcode}_temp.fasta" )
- 
 	conda:
 		"env/seqtk.yaml"        
 	shell:
