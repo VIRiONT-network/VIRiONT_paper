@@ -16,6 +16,7 @@ variant_frequency=config['variantfrequency']
 mincov_cons=config['mincov']
 trim_min=config['Lmin']
 trim_max=config['Lmax']
+quality_read=config['quality']
 trim_head=config['headcrop']
 trim_tail=config['tailcrop']
 MI_cutoff=config['multiinf']
@@ -122,6 +123,7 @@ rule write_param_used:
         textfile.write("database used:"+refpath+"\n")
         textfile.write("read minlength:"+str(trim_min)+"\n")
         textfile.write("read maxlength:"+str(trim_max)+"\n")
+        textfile.write("quality filtering:"+str(quality_read)+"\n")
         textfile.write("read 5' trimming length:"+str(trim_head)+"\n")
         textfile.write("read 3' trimming length:"+str(trim_tail)+"\n")
         textfile.write("min coverage for consensus generation:"+str(mincov_cons)+"\n")

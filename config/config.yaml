@@ -18,6 +18,7 @@ Lmin : 1500
 Lmax : 3500
 headcrop : 0
 tailcrop : 0
+quality : 0
 
 #perl
 variantfrequency : 0.5

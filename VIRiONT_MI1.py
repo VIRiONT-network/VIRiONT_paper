@@ -16,6 +16,7 @@ trim_min=config['Lmin']
 trim_max=config['Lmax']
 trim_head=config['headcrop']
 trim_tail=config['tailcrop']
+quality_read=config['quality']
 MI_cutoff=config['multiinf']
 
 
@@ -36,6 +37,11 @@ if (trim_tail>0):
 	tail="--tailcrop "+str(trim_tail)
 else:
 	tail=""
+if (quality_read>0):
+	qfiltering="--quality "+str(quality_read)
+else:
+	qfiltering=""
+
 
 #get database name
 filename=os.path.basename(refpath)
@@ -61,10 +67,10 @@ rule pipeline_ending:
 		#trimmed_file = expand(resultpath+'03_FILTERED_TRIMMED/{barcode}_filtered_trimmed.fastq',barcode=BARCODE),
 		#converted_fastq = expand(resultpath+"FASTA/{barcode}.fasta", barcode=BARCODE),
 		#ref_rep=resultpath+"00_SUPDATA/REFSEQ/",
-		#R_data = expand(resultpath+"04_BLASTN_ANALYSIS/{barcode}_fmt.txt" ,barcode=BARCODE),
+		R_data = expand(resultpath+"04_BLASTN_ANALYSIS/{barcode}_fmt.txt" ,barcode=BARCODE),
 		######## FINAL OUTPUTS ########		
-		blastn_result=expand(resultpath+"04_BLASTN_ANALYSIS/{barcode}_blastnR.tsv",barcode=BARCODE),
-		summ_multiinf = resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv",
+		#blastn_result=expand(resultpath+"04_BLASTN_ANALYSIS/{barcode}_blastnR.tsv",barcode=BARCODE),
+		#summ_multiinf = resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv",
 
 
 rule merging_fastq:
@@ -161,7 +167,7 @@ rule trimming_fastq:
 	conda:
 		"env/nanofilt.yaml"
 	shell:
-		"NanoFilt {lengmin} {lengmax} {head} {tail} {input} > {output} "
+		"NanoFilt {lengmin} {lengmax} {head} {tail} {qfiltering} {input.meta_fastq} > {output.trimmed_fastq} "
 
 rule converting_fastq_fasta:
 	message:
