@@ -67,10 +67,11 @@ rule pipeline_ending:
 		#trimmed_file = expand(resultpath+'03_FILTERED_TRIMMED/{barcode}_filtered_trimmed.fastq',barcode=BARCODE),
 		#converted_fastq = expand(resultpath+"FASTA/{barcode}.fasta", barcode=BARCODE),
 		#ref_rep=resultpath+"00_SUPDATA/REFSEQ/",
-		R_data = expand(resultpath+"04_BLASTN_ANALYSIS/{barcode}_fmt.txt" ,barcode=BARCODE),
+		#R_data = expand(resultpath+"04_BLASTN_ANALYSIS/{barcode}_fmt.txt" ,barcode=BARCODE),
+		#merged_data = resultpath+"04_BLASTN_ANALYSIS/ALL_refcount.tsv"
 		######## FINAL OUTPUTS ########		
 		#blastn_result=expand(resultpath+"04_BLASTN_ANALYSIS/{barcode}_blastnR.tsv",barcode=BARCODE),
-		#summ_multiinf = resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv",
+		summ_multiinf = resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv",
 
 
 rule merging_fastq:
@@ -226,38 +227,41 @@ rule blastn_ref:
 		"env/blast.yaml"               
 	shell:
 		"""
-		blastn -db {params.database_path} -query {input.fasta_file} -outfmt 6 -out {output.R_data} -num_threads {threads}
+		blastn -db {params.database_path} -query {input.fasta_file} -outfmt "6 qseqid sseqid bitscore" -out {output.R_data} -num_threads {threads}
 		"""   
 
-rule blastn_analysis:
-	message:
-		"Computing the majoritary reference for {wildcards.barcode}_nonhuman.fastq and checking multi-infection case above the given threshold ({MI_cutoff}%) using R."
+rule count_refmatching:
 	input:
 		R_data = rules.blastn_ref.output.R_data ,
 		ref_table = rules.split_reference.output.ref_rep,
 	output:
-		ref_ratio_plot = resultpath+"04_BLASTN_ANALYSIS/{barcode}_ratio_plot.png",
-		ref_count_plot = resultpath+"04_BLASTN_ANALYSIS/{barcode}_count_plot.png",
-		multi_inf_table = temp(resultpath+"04_BLASTN_ANALYSIS/{barcode}_MI.tsv") ,
+		ref_count = temp(resultpath+"04_BLASTN_ANALYSIS/{barcode}_refcount.tsv"),
 		blastn_result = resultpath+"04_BLASTN_ANALYSIS/{barcode}_blastnR.tsv"
-	params:
-		analyse=database_name
 	conda:
-		"env/Renv.yaml"          
+		"env/Renv.yaml"     
 	shell:
 		"""
-		Rscript script/Blastn_analysis_MI.R {input.R_data} \
+		Rscript script/count_ref.R {input.R_data} \
 			{input.ref_table}R_table_analysis.csv \
-			{output.blastn_result} {output.ref_ratio_plot} \
-			{MI_cutoff} {wildcards.barcode} {output.multi_inf_table} {output.ref_count_plot}
+			{wildcards.barcode} \
+			{output.ref_count} \
+			{output.blastn_result}
 		"""  
 
-rule summ_multiinf:
-	message:
-		"Store MI results in SUMMARY_Multi_Infection.tsv ."
+rule MI_analysis:
 	input:
-		multi_inf_table = expand(rules.blastn_analysis.output.multi_inf_table,barcode=(BARCODE))
+		count_ref_data = expand(rules.count_refmatching.output.ref_count,barcode=BARCODE)
 	output:
+		merged_data = temp(resultpath+"04_BLASTN_ANALYSIS/ALL_refcount.tsv"),
+		plot_pdf = resultpath+"04_BLASTN_ANALYSIS/read_repartition.pdf",
 		summ_multiinf = resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv"
+	conda:
+		"env/Renv.yaml"   
 	shell:
-		"cat {input} > {output} "
+		"""
+		cat {input.count_ref_data} > {output.merged_data}
+		Rscript script/MI_analysis.R {output.merged_data} \
+			{MI_cutoff} \
+			{output.plot_pdf} \
+			{output.summ_multiinf}
+		"""
