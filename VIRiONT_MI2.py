@@ -91,7 +91,7 @@ rule pipeline_output:
         cov_plot = resultpath+"07_COVERAGE/cov_plot.pdf",
         ######## CONSENSUS FILES ########       
         #consfile,
-        cons_seq = resultpath+"09_CONSENSUS/all_cons.fasta",
+        #cons_seq = resultpath+"09_CONSENSUS/all_cons.fasta",
         ######## QC METRIC FILES ########  
         #raw_read = expand(resultpath+"10_QC_ANALYSIS/{barcode}_rawseq.txt",barcode=BARCODE),
         #trimmed_read = expand(resultpath+"10_QC_ANALYSIS/{barcode}_trimmseq.txt",barcode=BARCODE),
@@ -293,23 +293,17 @@ rule summarize_metric:
 
 rule prepareSEQ:
     message:
-        "Concatenate all consensus sequences with matched references."
+        "Concatenate all consensus sequences with all reference sequences."
     input:
         allcons = expand(consfile),
         reference_file = refpath
     output:
-        filtered_refseq_list = temp(resultpath+"11_PHYLOGENETIC_TREE/matching_ref.txt"),
-        filtered_refseq = temp(resultpath+"11_PHYLOGENETIC_TREE/matching_ref.fasta"),
         cons_seq = resultpath+"09_CONSENSUS/all_cons.fasta",
         allseq = temp(resultpath+"11_PHYLOGENETIC_TREE/allseq.fasta"),
-    conda:
-        "env/seqkit.yaml"   
     shell:
         """
-        awk '{{print $2}}' {data_multiinf} | sort | uniq > {output.filtered_refseq_list}
-		seqkit grep --pattern-file {output.filtered_refseq_list} {input.reference_file} > {output.filtered_refseq}
         cat {input.allcons} > {output.cons_seq}
-        cat {output.filtered_refseq} {output.cons_seq} > {output.allseq}
+        cat {input.reference_file} {output.cons_seq} > {output.allseq}
         """
 
 rule sequenceAlign:
