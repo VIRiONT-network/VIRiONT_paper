@@ -50,7 +50,7 @@ for i in range(0,assoc_sample_ref_number):
 #produce filtered fastq
 fastq_filtered=[]
 for i in range(0,assoc_sample_ref_number):
-	fastq_filtered.append(resultpath +"05_REFFILTERED_FASTQ/"+sample_list[i]+"/"+reference_list[i]+"_filtered.fastq")
+	fastq_filtered.append(resultpath +"05_REFILTERED_FASTQ/"+sample_list[i]+"/"+reference_list[i]+"_filtered.fastq")
 
 #produce bam
 bamfile=[]
@@ -151,7 +151,7 @@ rule extract_matching_read:
 		read_list = rules.getfastqlist.output.fastqlist,
 		nonhuman_fastq = resultpath + '03_FILTERED_TRIMMED/{barcode}_filtered_trimmed.fastq'      
 	output:
-		merged_filtered = resultpath +"05_REFFILTERED_FASTQ/{barcode}/{reference}_filtered.fastq" 
+		merged_filtered = resultpath +"05_REFILTERED_FASTQ/{barcode}/{reference}_filtered.fastq" 
 	conda:
 		"env/seqkit.yaml"          
 	shell:
