@@ -217,7 +217,7 @@ rule variant_calling:
         "env/samtools.yaml"  
     shell:
         """
-        samtools mpileup -d 200000 -Q 0 -f {input.split_ref_path}{wildcards.reference}.fasta {input.sorted_bam}  > {output}
+        samtools mpileup -d 1000000 -Q 0 -f {input.split_ref_path}{wildcards.reference}.fasta {input.sorted_bam}  > {output}
         """   
 
 rule generate_consensus:
