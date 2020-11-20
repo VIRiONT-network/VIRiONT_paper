@@ -227,7 +227,9 @@ rule blastn_ref:
 		"env/blast.yaml"               
 	shell:
 		"""
-		blastn -db {params.database_path} -query {input.fasta_file} -outfmt "6 qseqid sseqid bitscore" -out {output.R_data} -num_threads {threads}
+		blastn -db {params.database_path} -query {input.fasta_file} \
+			-outfmt "6 qseqid sseqid bitscore slen qlen length pident" \
+			-out {output.R_data} -num_threads {threads}
 		"""   
 
 rule count_refmatching:

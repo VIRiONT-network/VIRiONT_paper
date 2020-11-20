@@ -1,7 +1,11 @@
 argv <- commandArgs(TRUE)
 
 #parse arguments
-blastn_data<-read.table(argv[1],header=F,sep="\t",col.names =c("READ","GENOTYPE","SCORE"))
+blastn_data<-read.table(argv[1],header=F,sep="\t")
+colnames(blastn_data)<-c("qseqid","sseqid","bitscore","slen","qlen","length","pindent")
+blastn_data<-blastn_data[,c(1:3)]
+colnames(blastn_data)<-c("READ","GENOTYPE","SCORE")
+
 analysis_table<-read.csv2(argv[2])
 samplename<-as.character(argv[3])
 output_ref_count<-as.character(argv[4])
