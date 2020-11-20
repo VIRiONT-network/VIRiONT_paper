@@ -20,6 +20,8 @@ quality_read=config['quality']
 trim_head=config['headcrop']
 trim_tail=config['tailcrop']
 MI_cutoff=config['multiinf']
+mpileup_depth=config['depth']
+mpileup_basequal=config['basequality']
 
 
 #get database name
@@ -73,9 +75,9 @@ for i in range(0,assoc_sample_ref_number):
 	consfile.append(resultpath +"09_CONSENSUS/"+sample_list[i]+"/"+reference_list[i]+"_cons.fasta")
 
 #produce filterseq files
-filtseqfile=[]
+filtseqfilecount=[]
 for i in range(0,assoc_sample_ref_number):
-	filtseqfile.append(resultpath +"10_QC_ANALYSIS/"+sample_list[i]+"/"+reference_list[i]+"_filterseq.txt")
+	filtseqfilecount.append(resultpath +"10_QC_ANALYSIS/"+sample_list[i]+"/"+reference_list[i]+"_filterseqcount.csv")
 
 
 rule pipeline_output:
@@ -101,7 +103,11 @@ rule pipeline_output:
         #dehosted_all = resultpath+"10_QC_ANALYSIS/CAT_dehostseq.tab",
         #bestmatched_all = resultpath+"10_QC_ANALYSIS/CAT_BMseq.tab",
         #summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_tableTEMP.csv",
-        full_summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_table.csv",
+        #full_summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_table.csv",
+        allraw = resultpath+"10_QC_ANALYSIS/all_rawcount.csv",
+        alldehost = resultpath+"10_QC_ANALYSIS/all_dehostcount.csv",
+        alltrim = resultpath+"10_QC_ANALYSIS/all_trimcount.csv",
+        allrefilter = resultpath+"10_QC_ANALYSIS/all_refcount.csv",
         ######## QC PHYLOGENETIC TREE FILES ########  
         #allseq = resultpath+"11_PHYLOGENETIC_TREE/allseq.fasta",
         #align_seq = resultpath+"11_PHYLOGENETIC_TREE/align_seq.fasta",
@@ -127,6 +133,8 @@ rule write_param_used:
         textfile.write("read 5' trimming length:"+str(trim_head)+"\n")
         textfile.write("read 3' trimming length:"+str(trim_tail)+"\n")
         textfile.write("min coverage for consensus generation:"+str(mincov_cons)+"\n")
+        textfile.write("variant calling depth:"+str(mpileup_depth)+"\n")
+        textfile.write("variant calling base quality threeshold:"+str(mpileup_basequal)+"\n")
         textfile.write("multi-infection cutoff:"+str(MI_cutoff)+"\n")
         textfile.write("variant frequency:"+str(variant_frequency)+"\n")
         textfile.close()
@@ -217,7 +225,7 @@ rule variant_calling:
         "env/samtools.yaml"  
     shell:
         """
-        samtools mpileup -d 1000000 -Q 0 -f {input.split_ref_path}{wildcards.reference}.fasta {input.sorted_bam}  > {output}
+        samtools mpileup -d {mpileup_depth} -Q {mpileup_basequal} -f {input.split_ref_path}{wildcards.reference}.fasta {input.sorted_bam}  > {output}
         """   
 
 rule generate_consensus:
@@ -240,17 +248,39 @@ rule read_metric:
     input:
         raw_fastq = resultpath+"01_MERGED/{barcode}_merged.fastq"  ,
         trimmed_fastq = resultpath+"03_FILTERED_TRIMMED/{barcode}_filtered_trimmed.fastq" ,
-        dehosted_fastq = resultpath + '02_DEHOSTING/{barcode}_meta.fastq' 
+        dehosted_fastq = resultpath + '02_DEHOSTING/{barcode}_meta.fastq' ,
     output:
         raw_read = temp(resultpath+"10_QC_ANALYSIS/{barcode}_rawseq.txt"),
         trimmed_read = temp(resultpath+"10_QC_ANALYSIS/{barcode}_trimmseq.txt"),
         dehosted_read = temp(resultpath+"10_QC_ANALYSIS/{barcode}_dehostseq.txt"),
-    shell:
-        """
-        awk '(NR%4==2)' {input.raw_fastq} | sed 's/$/ {wildcards.barcode}/' > {output.raw_read}
-        awk '(NR%4==2)' {input.trimmed_fastq} | sed 's/$/ {wildcards.barcode}/' > {output.trimmed_read}
-        awk '(NR%4==2)' {input.dehosted_fastq} | sed 's/$/ {wildcards.barcode}/' > {output.dehosted_read}
-        """
+        raw_count = temp(resultpath+"10_QC_ANALYSIS/{barcode}_rawcount.csv"),
+        trimm_count = temp(resultpath+"10_QC_ANALYSIS/{barcode}_trimmcount.csv"),
+        dehost_count = temp(resultpath+"10_QC_ANALYSIS/{barcode}_dehostcount.csv"),
+    run:
+        shell("awk '(NR%4==2)' {input.raw_fastq} > {output.raw_read}")
+        shell("awk '(NR%4==2)' {input.trimmed_fastq} > {output.trimmed_read}")
+        shell("awk '(NR%4==2)' {input.dehosted_fastq} > {output.dehosted_read}")
+        ######
+        rawlengthfile=open(output.raw_count,'w')
+        rawRfile=open(output.raw_read,'r')
+        for line in rawRfile:
+            rawlengthfile.write(str(len(line))+";"+wildcards.barcode+";RAW_FASTQ;NONE\n")
+        rawRfile.close()
+        rawlengthfile.close()
+        ######
+        trimlengthfile=open(output.trimm_count,'w')
+        trimRfile=open(output.trimmed_read,'r')
+        for line in trimRfile:
+            trimlengthfile.write(str(len(line))+";"+wildcards.barcode+";TRIMM_FASTQ;NONE\n")
+        trimRfile.close()
+        trimlengthfile.close()
+        ######
+        dehostlengthfile=open(output.dehost_count,'w')
+        dehostRfile=open(output.dehosted_read,'r')
+        for line in dehostRfile:
+            dehostlengthfile.write(str(len(line))+";"+wildcards.barcode+";DEHOST_FASTQ;NONE\n")
+        dehostRfile.close()
+        dehostlengthfile.close()
 
 rule read_metric_MI:
     message:
@@ -259,37 +289,33 @@ rule read_metric_MI:
         bestmatched_fastq = rules.extract_matching_read.output.merged_filtered ,
     output:
         bestmatched_read = temp(resultpath+"10_QC_ANALYSIS/{barcode}/{reference}_filterseq.txt"),
-    shell:
-        """
-        awk '(NR%4==2)' {input.bestmatched_fastq} | sed 's/$/ {wildcards.barcode} {wildcards.reference}/' > {output.bestmatched_read}
-        """
+        bestmatched_count = temp(resultpath+"10_QC_ANALYSIS/{barcode}/{reference}_filterseqcount.csv"),
+    run:
+        shell("awk '(NR%4==2)' {input.bestmatched_fastq} > {output.bestmatched_read}")
+        ######
+        BMlengthfile=open(output.bestmatched_count,'w')
+        BMRfile=open(output.bestmatched_read,'r')
+        for line in BMRfile:
+            BMlengthfile.write(str(len(line))+";"+wildcards.barcode+";REFILTERED_FASTQ;"+wildcards.reference+"\n")
+        BMRfile.close()
+        BMlengthfile.close()
 
-rule summarize_metric:
-    message:
-        "Compute metric and write the summary table using R."
+rule concat_datametric:
     input:
-        raw_read = expand(rules.read_metric.output.raw_read ,barcode=BARCODE),
-        trimmed_read = expand(rules.read_metric.output.trimmed_read,barcode=BARCODE),
-        dehosted_read = expand(rules.read_metric.output.dehosted_read,barcode=BARCODE),
-        bestmatched_read = expand(filtseqfile),
+        rawcount = expand(rules.read_metric.output.raw_count,barcode=BARCODE),
+        trimcount = expand(rules.read_metric.output.trimm_count,barcode=BARCODE),
+        dehostcount = expand(rules.read_metric.output.dehost_count,barcode=BARCODE),
+        refilteredcount = expand(filtseqfilecount),
     output:
-        raw_all = temp(resultpath+"10_QC_ANALYSIS/CAT_rawseq.tab"),
-        trimmed_all = temp(resultpath+"10_QC_ANALYSIS/CAT_trimmseq.tab"),
-        dehosted_all = temp(resultpath+"10_QC_ANALYSIS/CAT_dehostseq.tab"),
-        bestmatched_all = temp(resultpath+"10_QC_ANALYSIS/CAT_BMseq.tab"),
-        summ_table = temp(resultpath+"10_QC_ANALYSIS/METRIC_summary_tableTEMP.csv"),
-        full_summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_table.csv",
-    shell:
-        """
-        cat {input.raw_read} > {output.raw_all}
-        cat {input.trimmed_read} > {output.trimmed_all}
-        cat {input.dehosted_read} > {output.dehosted_all}
-        cat {input.bestmatched_read} > {output.bestmatched_all}
-        Rscript script/summarize_metric_MI1.R {output.raw_all} {output.trimmed_all} \
-             {output.dehosted_all}  {output.summ_table}
-        Rscript script/summarize_metric_MI2.R {output.bestmatched_all}\
-             {output.summ_table} {output.full_summ_table}
-        """
+        allraw = resultpath+"10_QC_ANALYSIS/all_rawcount.csv",
+        alldehost = resultpath+"10_QC_ANALYSIS/all_dehostcount.csv",
+        alltrim = resultpath+"10_QC_ANALYSIS/all_trimcount.csv",
+        allrefilter = resultpath+"10_QC_ANALYSIS/all_refcount.csv",
+    run:
+        shell("cat {input.rawcount} > {output.allraw}")
+        shell("cat {input.dehostcount} > {output.alldehost}")
+        shell("cat {input.trimcount} > {output.alltrim}")
+        shell("cat {input.refilteredcount} > {output.allrefilter}")
 
 rule prepareSEQ:
     message:
