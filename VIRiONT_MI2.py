@@ -103,11 +103,7 @@ rule pipeline_output:
         #dehosted_all = resultpath+"10_QC_ANALYSIS/CAT_dehostseq.tab",
         #bestmatched_all = resultpath+"10_QC_ANALYSIS/CAT_BMseq.tab",
         #summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_tableTEMP.csv",
-        #full_summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_table.csv",
-        allraw = resultpath+"10_QC_ANALYSIS/all_rawcount.csv",
-        alldehost = resultpath+"10_QC_ANALYSIS/all_dehostcount.csv",
-        alltrim = resultpath+"10_QC_ANALYSIS/all_trimcount.csv",
-        allrefilter = resultpath+"10_QC_ANALYSIS/all_refcount.csv",
+        full_summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_table.csv",
         ######## QC PHYLOGENETIC TREE FILES ########  
         #allseq = resultpath+"11_PHYLOGENETIC_TREE/allseq.fasta",
         #align_seq = resultpath+"11_PHYLOGENETIC_TREE/align_seq.fasta",
@@ -264,21 +260,21 @@ rule read_metric:
         rawlengthfile=open(output.raw_count,'w')
         rawRfile=open(output.raw_read,'r')
         for line in rawRfile:
-            rawlengthfile.write(str(len(line))+";"+wildcards.barcode+";RAW_FASTQ;NONE\n")
+            rawlengthfile.write(str(len(line.rstrip()))+";"+wildcards.barcode+";01_RAW_FASTQ;NONE\n")
         rawRfile.close()
         rawlengthfile.close()
         ######
         trimlengthfile=open(output.trimm_count,'w')
         trimRfile=open(output.trimmed_read,'r')
         for line in trimRfile:
-            trimlengthfile.write(str(len(line))+";"+wildcards.barcode+";TRIMM_FASTQ;NONE\n")
+            trimlengthfile.write(str(len(line.rstrip()))+";"+wildcards.barcode+";03_TRIMM_FASTQ;NONE\n")
         trimRfile.close()
         trimlengthfile.close()
         ######
         dehostlengthfile=open(output.dehost_count,'w')
         dehostRfile=open(output.dehosted_read,'r')
         for line in dehostRfile:
-            dehostlengthfile.write(str(len(line))+";"+wildcards.barcode+";DEHOST_FASTQ;NONE\n")
+            dehostlengthfile.write(str(len(line.rstrip()))+";"+wildcards.barcode+";02_DEHOST_FASTQ;NONE\n")
         dehostRfile.close()
         dehostlengthfile.close()
 
@@ -296,7 +292,7 @@ rule read_metric_MI:
         BMlengthfile=open(output.bestmatched_count,'w')
         BMRfile=open(output.bestmatched_read,'r')
         for line in BMRfile:
-            BMlengthfile.write(str(len(line))+";"+wildcards.barcode+";REFILTERED_FASTQ;"+wildcards.reference+"\n")
+            BMlengthfile.write(str(len(line.rstrip()))+";"+wildcards.barcode+";05_REFILTERED_FASTQ;"+wildcards.reference+"\n")
         BMRfile.close()
         BMlengthfile.close()
 
@@ -307,15 +303,31 @@ rule concat_datametric:
         dehostcount = expand(rules.read_metric.output.dehost_count,barcode=BARCODE),
         refilteredcount = expand(filtseqfilecount),
     output:
-        allraw = resultpath+"10_QC_ANALYSIS/all_rawcount.csv",
-        alldehost = resultpath+"10_QC_ANALYSIS/all_dehostcount.csv",
-        alltrim = resultpath+"10_QC_ANALYSIS/all_trimcount.csv",
-        allrefilter = resultpath+"10_QC_ANALYSIS/all_refcount.csv",
+        allraw = temp(resultpath+"10_QC_ANALYSIS/all_rawcount.csv"),
+        alldehost = temp(resultpath+"10_QC_ANALYSIS/all_dehostcount.csv"),
+        alltrim = temp(resultpath+"10_QC_ANALYSIS/all_trimcount.csv"),
+        allrefilter = temp(resultpath+"10_QC_ANALYSIS/all_refcount.csv"),
     run:
         shell("cat {input.rawcount} > {output.allraw}")
         shell("cat {input.dehostcount} > {output.alldehost}")
         shell("cat {input.trimcount} > {output.alltrim}")
         shell("cat {input.refilteredcount} > {output.allrefilter}")
+
+rule compute_metric:
+    input:
+        allraw = rules.concat_datametric.output.allraw,
+        alldehost = rules.concat_datametric.output.alldehost,
+        alltrim = rules.concat_datametric.output.alltrim,
+        allrefilter = rules.concat_datametric.output.allrefilter,
+    output:
+        full_summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_table.csv",
+    conda:
+        "env/Renv.yaml"
+    shell:
+        """
+        Rscript script/compute_metrics.R {input.allraw} {input.alldehost} \
+            {input.alltrim} {input.allrefilter} {output.full_summ_table}
+        """
 
 rule prepareSEQ:
     message:
