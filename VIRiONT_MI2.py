@@ -1,6 +1,7 @@
 #!usr/bin/en python3
 import os
 import glob
+import string
 import pandas as pd
 
 configfile : "config/config.yaml"
@@ -93,16 +94,8 @@ rule pipeline_output:
         cov_plot = resultpath+"07_COVERAGE/cov_plot.pdf",
         ######## CONSENSUS FILES ########       
         #consfile,
-        #cons_seq = resultpath+"09_CONSENSUS/all_cons.fasta",
+        cons_seq = resultpath+"09_CONSENSUS/all_cons.fasta",
         ######## QC METRIC FILES ########  
-        #raw_read = expand(resultpath+"10_QC_ANALYSIS/{barcode}_rawseq.txt",barcode=BARCODE),
-        #trimmed_read = expand(resultpath+"10_QC_ANALYSIS/{barcode}_trimmseq.txt",barcode=BARCODE),
-        #dehosted_read = expand(resultpath+"10_QC_ANALYSIS/{barcode}_dehostseq.txt",barcode=BARCODE),
-        #raw_all = resultpath+"10_QC_ANALYSIS/CAT_rawseq.tab",
-        #trimmed_all = resultpath+"10_QC_ANALYSIS/CAT_trimmseq.tab",
-        #dehosted_all = resultpath+"10_QC_ANALYSIS/CAT_dehostseq.tab",
-        #bestmatched_all = resultpath+"10_QC_ANALYSIS/CAT_BMseq.tab",
-        #summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_tableTEMP.csv",
         full_summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_table.csv",
         ######## QC PHYLOGENETIC TREE FILES ########  
         #allseq = resultpath+"11_PHYLOGENETIC_TREE/allseq.fasta",
@@ -329,19 +322,46 @@ rule compute_metric:
             {input.alltrim} {input.allrefilter} {output.full_summ_table}
         """
 
+rule filterIncompleteSeq:
+    input:
+        allcons = expand(consfile),
+    output:
+        cons_seq = resultpath+"09_CONSENSUS/all_cons.fasta",
+        filteredcons = resultpath+"11_PHYLOGENETIC_TREE/filteredcons.fasta",
+    run:
+        shell("cat {input.allcons} > {output.cons_seq}")
+        fastas={}
+        fasta_file=open(output.cons_seq,"r")
+        for line in fasta_file:
+            if (line[0]=='>'):
+                header=line
+                fastas[header]=''
+            else:
+                fastas[header]+=line
+        fasta_file.close()
+        #
+        filtered_fasta=open(output.filteredcons,'w')
+        for header,sequence in fastas.items():
+            sequence_ok=sequence.translate({ord(c): None for c in string.whitespace}).upper()
+            seqlen=len(sequence_ok)
+            Ncount=sequence_ok.count("N")
+            CompPerc=(seqlen-Ncount)/seqlen*100
+            if (CompPerc >= 90):
+                filtered_fasta.write(header.rstrip("\n")+"\n")
+                filtered_fasta.write(sequence_ok+"\n")
+        filtered_fasta.close()         
+
 rule prepareSEQ:
     message:
         "Concatenate all consensus sequences with all reference sequences."
     input:
-        allcons = expand(consfile),
+        filteredcons = rules.filterIncompleteSeq.output.filteredcons,
         reference_file = refpath
     output:
-        cons_seq = resultpath+"09_CONSENSUS/all_cons.fasta",
         allseq = temp(resultpath+"11_PHYLOGENETIC_TREE/allseq.fasta"),
     shell:
         """
-        cat {input.allcons} > {output.cons_seq}
-        cat {input.reference_file} {output.cons_seq} > {output.allseq}
+        cat {input.reference_file} {input.filteredcons} > {output.allseq}
         """
 
 rule sequenceAlign:

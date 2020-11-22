@@ -2,6 +2,8 @@
 import glob
 import os
 import sys
+import string
+
 
 ref_fasta_file=sys.argv[1]
 output_dir=sys.argv[2]
@@ -24,8 +26,9 @@ fasta_list=read_fasta(ref_fasta_file)
 for header,sequence in fasta_list.items():
     filename=output_dir+header[1:].strip()+".fasta"
     fasta_file=open(filename,'w')
+    sequence_ok=sequence.translate({ord(c): None for c in string.whitespace}).upper()
     fasta_file.write(header.rstrip("\n")+"\n")
-    fasta_file.write(sequence.rstrip("\n")+"\n")
+    fasta_file.write(sequence_ok+"\n")
     fasta_file.close() 
 
 R_tableBLAST=open(output_dir+"R_table_analysis.csv","w")

@@ -73,7 +73,6 @@ rule pipeline_ending:
 		#blastn_result=expand(resultpath+"04_BLASTN_ANALYSIS/{barcode}_blastnR.tsv",barcode=BARCODE),
 		summ_multiinf = resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv",
 
-
 rule merging_fastq:
 	message:
 		"Merging fastq/fastq.gz files from /datapath/{wildcards.barcode}/ to the /outputpath/01_MERGED/ folder."
