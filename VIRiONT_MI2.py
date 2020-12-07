@@ -58,14 +58,29 @@ for i in range(0,assoc_sample_ref_number):
 #produce bam
 bamfile=[]
 for i in range(0,assoc_sample_ref_number):
-	bamfile.append(resultpath +"06_BAM/"+sample_list[i]+"/"+reference_list[i]+"_sorted.bam")
+	bamfile.append(resultpath +"06_PRECONSENSUS/BAM/"+sample_list[i]+"/"+reference_list[i]+"_sorted.bam")
 
 #produce cov files
 covfile=[]
 for i in range(0,assoc_sample_ref_number):
-	covfile.append(resultpath +"07_COVERAGE/"+sample_list[i]+"/"+reference_list[i]+".cov")
+	covfile.append(resultpath +"12_COVERAGE/"+sample_list[i]+"/"+reference_list[i]+".cov")
 
 #produce vcf files
+vcffile=[]
+for i in range(0,assoc_sample_ref_number):
+	vcffile.append(resultpath +"06_PRECONSENSUS/VCF/"+sample_list[i]+"/"+reference_list[i]+"_sammpileup.vcf")
+
+#produce consensus files
+consfile=[]
+for i in range(0,assoc_sample_ref_number):
+	consfile.append(resultpath +"06_PRECONSENSUS/SEQUENCES/"+sample_list[i]+"/"+reference_list[i]+"_cons.fasta")
+
+#produce bam aligned on preconsensus
+bamfile=[]
+for i in range(0,assoc_sample_ref_number):
+	bamfile.append(resultpath +"07_BAM/"+sample_list[i]+"/"+reference_list[i]+"_sorted.bam")
+
+#produce vcf files on preconsensus
 vcffile=[]
 for i in range(0,assoc_sample_ref_number):
 	vcffile.append(resultpath +"08_VCF/"+sample_list[i]+"/"+reference_list[i]+"_sammpileup.vcf")
@@ -74,6 +89,7 @@ for i in range(0,assoc_sample_ref_number):
 consfile=[]
 for i in range(0,assoc_sample_ref_number):
 	consfile.append(resultpath +"09_CONSENSUS/"+sample_list[i]+"/"+reference_list[i]+"_cons.fasta")
+
 
 #produce filterseq files
 filtseqfilecount=[]
@@ -89,11 +105,11 @@ rule pipeline_output:
         #bamfile,
         #filtseqfile,
         #vcffile,
+        #consfile,
         ######## COVERAGE ANALYSIS ########  
         #covfile,
-        cov_plot = resultpath+"07_COVERAGE/cov_plot.pdf",
+        cov_plot = resultpath+"12_COVERAGE/cov_plot.pdf",
         ######## CONSENSUS FILES ########       
-        #consfile,
         cons_seq = resultpath+"09_CONSENSUS/all_cons.fasta",
         ######## QC METRIC FILES ########  
         full_summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_table.csv",
@@ -163,7 +179,7 @@ rule filtered_fastq_alignemnt:
         merged_filtered = rules.extract_matching_read.output.merged_filtered ,
         split_ref_path = resultpath+"00_SUPDATA/REFSEQ/" ,
     output:
-        spliced_bam = resultpath+"06_BAM/{barcode}/{reference}_sorted.bam" 
+        spliced_bam = resultpath+"06_PRECONSENSUS/BAM/{barcode}/{reference}_sorted.bam" 
     conda:
         "env/minimap2.yaml"              
     shell:
@@ -178,7 +194,7 @@ rule compute_coverage:
     input:
         sorted_bam = rules.filtered_fastq_alignemnt.output.spliced_bam
     output:
-        coverage = resultpath+"07_COVERAGE/{barcode}/{reference}.cov" 
+        coverage = resultpath+"12_COVERAGE/{barcode}/{reference}.cov" 
     conda:
         "env/bedtools.yaml"          
     shell:
@@ -192,8 +208,8 @@ rule plot_coverage:
     input:
         cov = covfile
     output:
-        cov_sum = resultpath+"07_COVERAGE/cov_sum.cov" ,
-        cov_plot = resultpath+"07_COVERAGE/cov_plot.pdf"
+        cov_sum = resultpath+"12_COVERAGE/cov_sum.cov" ,
+        cov_plot = resultpath+"12_COVERAGE/cov_plot.pdf"
     conda:
         "env/Renv.yaml" 
     shell:
@@ -209,7 +225,7 @@ rule variant_calling:
         split_ref_path = resultpath+"00_SUPDATA/REFSEQ/"  ,
         sorted_bam = rules.filtered_fastq_alignemnt.output.spliced_bam ,
     output:
-        vcf = resultpath+"08_VCF/{barcode}/{reference}_sammpileup.vcf"
+        vcf = resultpath+"06_PRECONSENSUS/VCF/{barcode}/{reference}_sammpileup.vcf"
     conda:
         "env/samtools.yaml"  
     shell:
@@ -223,6 +239,49 @@ rule generate_consensus:
     input:
         vcf = rules.variant_calling.output.vcf
     output:
+        fasta_cons_temp = temp(resultpath+"06_PRECONSENSUS/SEQUENCES/{barcode}/{reference}_cons_temp.fasta") ,
+        fasta_cons = resultpath+"06_PRECONSENSUS/SEQUENCES/{barcode}/{reference}_cons.fasta"
+    shell:
+        """
+        perl script/pathogen_varcaller_MINION.PL {input} 0.5 {output.fasta_cons_temp} {mincov_cons}
+        sed  's/>.*/>{wildcards.barcode}_PRECONS/' {output.fasta_cons_temp} > {output.fasta_cons}
+        """
+
+rule precons_alignemnt:
+    input:
+        fasta_cons = rules.generate_consensus.output.fasta_cons,
+        merged_filtered = rules.extract_matching_read.output.merged_filtered 
+    output:
+        consbam = resultpath +"07_BAM/{barcode}/{reference}_sorted.bam"
+    conda:
+        "env/minimap2.yaml"              
+    shell:
+        """
+        minimap2 -ax splice {input.fasta_cons} {input.merged_filtered} | samtools sort > {output.consbam}
+        samtools index {output.consbam}  
+        """
+
+rule variant_calling_precons:
+    message:
+        "Variant calling on {wildcards.barcode}/{wildcards.reference}_sorted.bam aligned bam using samtools."
+    input:
+        fasta_cons = rules.generate_consensus.output.fasta_cons,
+        consbam = rules.precons_alignemnt.output.consbam ,
+    output:
+        vcf = resultpath+"08_VCF/{barcode}/{reference}_sammpileup.vcf"
+    conda:
+        "env/samtools.yaml"  
+    shell:
+        """
+        samtools mpileup -d {mpileup_depth} -Q {mpileup_basequal} -f {input.fasta_cons} {input.consbam}  > {output.vcf}
+        """   
+
+rule generate_finalconsensus:
+    message:
+        "Generate consensus sequence from /{wildcards.barcode}/{wildcards.reference}_sammpileup.vcf using perl script."
+    input:
+        vcf = rules.variant_calling_precons.output.vcf
+    output:
         fasta_cons_temp = temp(resultpath+"09_CONSENSUS/{barcode}/{reference}_cons_temp.fasta") ,
         fasta_cons = resultpath+"09_CONSENSUS/{barcode}/{reference}_cons.fasta"
     shell:
@@ -230,7 +289,8 @@ rule generate_consensus:
         perl script/pathogen_varcaller_MINION.PL {input} {variant_frequency} {output.fasta_cons_temp} {mincov_cons}
         sed  's/>.*/>{wildcards.barcode}_{wildcards.reference}_ONT{variant_frequency}/' {output.fasta_cons_temp} > {output.fasta_cons}
         """
-        
+
+
 rule read_metric:
     message:
         "Extract read sequence from  MERGED/TRIMMED/DEHOSTED {wildcards.barcode}.fastq for metric computation."

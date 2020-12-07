@@ -8,11 +8,11 @@
 #######################    GENERAL PARAMETERS    ###############################
 ################################################################################
 #fastq location / Define path where the "barcode*" rep are stored
-data_loc="/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/DATA_HBV_TEST/" 
+data_loc="/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/DATA_HDV_TEST/" 
 #output location / Define path where storing analysis results 
-result_loc="/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/BRICOLAGE_VIRIONT/" 
+result_loc="/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/TEST_HDVSGT_VIRIONT_IMPROVE/" 
 #custom reference file to use /  Path to fastafile containing reference sequences for blast
-ref_loc="ref/HBV_REF.fasta" 
+ref_loc="ref/HDV_subtype.fasta" 
 #core number / Define number of threads to use for the analysis
 thread_number=8
 #memory cost in mb / Define number of threads to use for the analysis
@@ -23,22 +23,22 @@ mem_cost=62000
 #################    TRIMMING/FILTERING PARAMETERS    ##########################
 ################################################################################
 #min length for read filtering
-min_length=1000
+min_length=500
 #max length for read filtering
-max_length=3500
+max_length=2000
 #average read quality for filtering
 quality=0
 #Remove N 5' nucleotides from each filtered read 
-head=21
+head=23
 #Remove N 3' nucleotides from each filtered read 
-tail=21
+tail=23
 ################################################################################
 
 ################################################################################
 #################    VARIANT CALLING PARAMETERS    ##########################
 ################################################################################
 #maximum depth for samtools mpileup
-maxdepth=20000
+maxdepth=1000000
 #base quality cutoff for samtools mpileup
 basequal=20
 ################################################################################
@@ -56,7 +56,7 @@ mincov=20
 ###################    MULTI-INFECTION PARAMETER    ############################
 ################################################################################
 #Multi infection threshold cutoff in percent / cutoff=count(Blastref_reads)/count(majoritaryBlastref_reads)*100
-MI_cutoff=20
+MI_cutoff=30
 ################################################################################
 
 
