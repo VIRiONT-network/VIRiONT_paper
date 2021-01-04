@@ -121,6 +121,7 @@ All pipeline outputs are stored in the choosen path (see above) and generate fol
 
 **param_file.txt** : a text file, summarizing parameters used for the current analysis.   
 **00_SUPDATA/BD** : a folder, containing the database built using blast and individual reference sequences.  
+**00_SUPDATA/REFSEQ** : a folder, containing the individual reference sequences.  
 **01_MERGED** : a folder, containing merged fastq.  
 **02_DEHOSTING** : a folder, containing dehosted (non human) bam.  
 **03_FILTERED_TRIMMED** : a folder, containing trimmed fastq by NanoFilt with the given parameters.  
