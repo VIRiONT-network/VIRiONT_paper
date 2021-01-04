@@ -16,14 +16,18 @@ barcoding/barcode02/*.fastq
 barcoding/barcode24/*.fastq
 ``` 
 For each barcode, you can find herein the global workflow:  
-**Step1** => merging (if several fastq in the barcode rep) and trimming fastq using given parameters.  
+**Step1** => merging if several fastq in the barcode rep.  
 **Step2** => removing human reads from fastq files.  
-**Step3** => blastn research on each reference for get the best maching reference(s).     
-**Step4** => build consensus sequence on the best matching reference after generating alignement files with minimap2 (option splice)    
+**Step3** => trimming fastq using given parameters.  
+**Step4** => blastn research on each reference for get the best maching reference(s).     
+**Step5** => build consensus sequence on the best matching reference after generating alignement files with minimap2 (option splice)    
 
 # workflow dag
 
+<!---
 ![image info](./documents/workflow.png)
+-->
+TO UPDATE.  
 
 # Requirements & Tools
 
@@ -37,16 +41,20 @@ Environment files and software versions are available in the *env/* folder.
 *fastq and fasta management* : seqkit v0.12.1. See => https://github.com/shenwei356/seqkit <=  
 *fastq and fasta management* : seqtk v1.3. See => https://github.com/lh3/seqtk <=   
 *coverage computation* : bedtools v2.29.2. See => https://github.com/arq5x/bedtools <=   
-*statistics and plotting* : R v4.0.2. See => https://cran.r-project.org/ <=  
+*statistics and plotting* : R v3.6.3. See => https://cran.r-project.org/ <=  
 *sequence alignment* : muscle v3.8.1551. See => http://www.drive5.com/muscle <=  
 *newick tree computation* : iqtree v2.0.3. See => http://www.iqtree.org/ <=  
 *tree drawing* : ete3 v3.1.2. See => http://etetoolkit.org/ <=  
 
 # Multiple Infection case
 
-Two workflows are available:  
--One workflow *VIRiONT_BM.py* generating one consensus sequence per barcode, called using the script *VIRiONT_BM.sh*. The major reference in read matching count is used to produce the consensus sequence.  
--The second workflow *VIRiONT_MI.py* called using the script *VIRiONT_MI.sh*. Using an input given threshold, selected references are used to produde as many consensus sequences as selected references for each barcode. A reference is selected when the current_reference_read_count/major_reference*100 is equal or above the input threshold.
+VIRiONT can detect co-infection or contamination case when processing to the blastn analysis step.  
+During this step, we proceed to a readcount matching for each reference sequences.  
+The best-matching reference is used to percent normalize each readcount.  
+A reference is selected if the percent normalized count is equal or above the input threshold.  
+The selected references are used to independently produce as many consensus sequences as selected references for each barcode.  
+
+*note: if you're not confident with this option, it is posssible to set the **MI_cutoff** to 100 for getting only the best-matching reference.*
 
 # Quick using steps
 
@@ -75,13 +83,13 @@ Step 4 : launch the pipeline by executing:
 ```
 conda activate VIRiONT_env #only if you previously created this environment for using VIRiONT.
 cd VIRiONT
-./VIRiONT_BM.sh # Generate consensus from best matching reference only 
 ./VIRiONT_MI.sh # Generate consensus for all references over the given threshold
 ```
 
 # Input and configuration
 
-Here is a view on the parameters to check before launching analysis. To change parameters, you have to open *VIRiONT/VIRiONT_BM.sh* or *VIRiONT/VIRiONT_MI.sh* with a text editor. All parameters are located in the ###### CONFIGURATION ####### section.  
+Here is a view on the parameters to check before launching analysis. Currently, to change parameters, you have to open  *VIRiONT/VIRiONT_MI.sh* with a text editor.  
+All parameters are located in the ###### CONFIGURATION ####### section.  
 
 **GENERAL PARAMETERS:**  
 **data_loc** : path where fastq data are stored. Be sure this path leads on all barcode folders you want to analyse. Currently, only fastq repositories marked as "barcode*" are interpreted as repository data. If needed, rename your rep as "barcode*".  
@@ -96,27 +104,32 @@ Here is a view on the parameters to check before launching analysis. To change p
 **head** : nucleotid length to be trimmed in 5'.  
 **tail** : nucleotid length to be trimmed in 3'.  
 
+**VARIANT CALLING PARAMETERS:**
+**maxdepth** : maximum depth for samtools mpileup.  
+**basequal** : base quality cutoff for samtools mpileup.  
+
 **CONSENSUS PARAMETERS:**   
 **Vfreq** : minor variant frequency threshold to call the consensus sequence.  
 **mincov** : minimun coverage expected to generate consensus sequence. N is called if below this threshold.  
 
 **MULTI-INFECTION PARAMETER:**  
-**MI_cutoff** : Percentage cutoff for detecting a multiple infection case. cutoff= count(Blastref)/count(majoritaryBlastref)*100. Only concern *VIRiONT_MI* analysis.  
+**MI_cutoff** : Percentage cutoff for detecting a multiple infection case.  Se more above in the **Multiple Infection case** section.  
 
 # Pipeline ouputs
 
-All pipeline outputs are stored in the choosen path (see above).For each analysis, the following output are produced for both BM and MI analysis:  
+All pipeline outputs are stored in the choosen path (see above) and generate following folders:  
 
 **00_SUPDATA/BD** folder, containing the database built using blast and individual reference sequences.  
 **01_MERGED** folder, containing merged fastq.  
-**02_TRIMMED** folder, containing trimmed fastq by NanoFilt with the given parameters.  
-**03_DEHOSTING** folder, containing dehosted (non human) bam.  
+**02_DEHOSTING** folder, containing dehosted (non human) bam.  
+**03_FILTERED_TRIMMED** folder, containing trimmed fastq by NanoFilt with the given parameters.  
 **04_BLASTN_ANALYSIS** folder, containing the blastn analysis results, including the list of reads matching with the best reference, with barplot of reference repartition for each barcode.  
-**05_REFFILTERED** folder, containing fastq with read corresponding with the corresponding matching references.   
-**06_BAM** folder, containing bam aligned on the best reference.  
-**07_COVERAGE** folder, containing coverage table from each bam using bedtools, and coverage plots compiled into one pdf.  
+**05_REFILTERED_FASTQ** folder, containing fastq with read corresponding with the corresponding matching references.   
+**06_PRECONSENSUS** folder, containing intermediate data related to the generated preconsensus.  
+**07_BAM** folder, containing bam aligned on the preconsensus.  
 **08_VCF** folder, containing mpileup and variant calling results.  
 **09_CONSENSUS** folder, containing consensus sequences generated by a custom perl script.  
 **10_QC_ANALYSIS** folder, containing usefull read metrics at several pipeline steps.  
-**11_PHYLOGENETIC_TREE** folder, containing a consensus with matched reference sequences phylogenetic tree.
+**11_PHYLOGENETIC_TREE** folder, containing a consensus with matched reference sequences phylogenetic tree.  
+**12_COVERAGE** folder, containing coverage table from each bam using bedtools, and coverage plots compiled into one pdf.  
 
