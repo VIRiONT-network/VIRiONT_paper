@@ -81,9 +81,9 @@ git clone https://github.com/VIRiONT-network/VIRiONT.git
 ```
 Step 4 : launch the pipeline by executing:  
 ```
-conda activate VIRiONT_env #only if you previously created this environment for using VIRiONT.
-cd VIRiONT
-./VIRiONT_MI.sh # Generate consensus for all references over the given threshold
+conda activate VIRiONT_env #only if you previously created this environment for VIRiONT use.  
+cd VIRiONT  
+./launch_VIRiONT.sh  
 ```
 
 # Input and configuration
