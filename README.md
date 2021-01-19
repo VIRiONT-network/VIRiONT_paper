@@ -1,10 +1,9 @@
-# VIRiONT Pipeline (VIRal Oxford Nanopore Technologies sequencing Pipeline)
+# VIRiONT (VIRal in-house Oxford Nanopore Technologies sequencing) Pipeline
 
 # Quick presentation
 
-VIRiONT pipeline is designed to analyse data from amplicon-approach-based Nanopore sequencing. It was primarily developed to analyse data from hepatitis B virus (HBV) complete genome long read sequencing after an amplification step. It was secondarily extended to hepatitis delta virus (HDV). However, this pipeline can be adapted for other viruses and pathogens as well. You just need a custom reference dataset specific to the pathogen and adapted to the amplicon design used prior your ONT sequencing.
-
-This pipeline was primarily designed for studying HBV full genome long read sequencing (about 3kb in lenght). If you plan to use this workflow on shorter or longer amplicons, be sure to chose and adapt parameters used for the filtering steps, see below.
+VIRiONT pipeline is designed to analyze data from amplicon-approach-based Nanopore sequencing. It was primarily developed to analyze data from hepatitis B virus (HBV) complete genome long read sequencing after an amplification step of the full genome in one fragment (about 3kb in lenght). It was secondarily extended to hepatitis delta virus (HDV, about 1.7kb in lenght). However, this pipeline can be adapted for other viruses and pathogens as well. You just need to upload a custom reference dataset specific to the pathogen and adapted to the amplicon design used prior your ONT sequencing.
+Of note, if you plan to use this workflow to analyze shorter or longer amplicons, be sure to chose and adapt parameters of the read lenght filtering steps, see below.
 
 # Workflow
 
@@ -16,11 +15,12 @@ barcoding/barcode02/*.fastq
 barcoding/barcode24/*.fastq
 ``` 
 For each barcode, you can find herein the global workflow:  
-**Step1** => merging if several fastq in the barcode rep.  
-**Step2** => removing human reads from fastq files.  
-**Step3** => trimming fastq using given parameters.  
-**Step4** => blastn research on each reference for get the best maching reference(s).     
-**Step5** => build consensus sequence on the best matching reference after generating alignement files with minimap2 (option splice)    
+**Step1** => merging if there are several fastq in the barcode rep.  
+**Step2** => removing human reads from fastq files (dehosting step).  
+**Step3** => trimming fastq using given parameters (primer removal and read lenght filtering).  
+**Step4** => blastn analysis leads to the selection of the best matching reference(s) among the uploaded custom dataset, based on a best bitscore mapping read count. 
+**Step5** => generation of a final consensus sequence using a custom perl script with a tunable minimal variant frequency : (i) a first Minimap2 (option splice) alignment guided by the best matching reference (selected at the blastn step) leads to a intermediate pre-consensus sequence (ii) This latter sequence is used as the sample’s own mapping reference for a second realignment of the reads that enables to generate to the final consensus sequence. Of note, consensus sequence can be called at a tunable minimum depth set up per default at 20X (usually applied among Nanopore community).
+**Step6** => generation of a phylognenetic tree including consensus and reference sequences of the custom dataset using a Maximum-likelihood statistical method (1000 bootstrap replicates) after a MUSCLE-based-alignment.
 
 # workflow dag
 
@@ -31,7 +31,7 @@ TO UPDATE.
 
 # Requirements & Tools
 
-Installation and use of the tools required for VIRiONT is fully managed by conda and snakemake.  
+Installation and use of the tools required by VIRiONT pipeline is fully managed by conda and snakemake.  
 Environment files and software versions are available in the *env/* folder.  
 
 *filtering and trimming* : NanoFilt v2.7.1. See => https://github.com/wdecoster/nanofilt <=  
@@ -42,23 +42,23 @@ Environment files and software versions are available in the *env/* folder.
 *fastq and fasta management* : seqtk v1.3. See => https://github.com/lh3/seqtk <=   
 *coverage computation* : bedtools v2.29.2. See => https://github.com/arq5x/bedtools <=   
 *statistics and plotting* : R v3.6.3. See => https://cran.r-project.org/ <=  
-*sequence alignment* : muscle v3.8.1551. See => http://www.drive5.com/muscle <=  
+*consensus and reference sequence alignment before phylognetic tree generation* : muscle v3.8.1551. See => http://www.drive5.com/muscle <=  
 *newick tree computation* : iqtree v2.0.3. See => http://www.iqtree.org/ <=  
 *tree drawing* : ete3 v3.1.2. See => http://etetoolkit.org/ <=  
 
 # Multiple Infection case
 
-VIRiONT can detect co-infection or contamination case when processing to the blastn analysis step.  
-During this step, we proceed to a readcount matching for each reference sequences.  
+VIRiONT can detect co-infection by several genotypes for instance or contamination case when processing to the blastn analysis step.  
+Based on the best bitscore value, we proceed to a readcount matching for each reference sequences 
 The best-matching reference is used to percent normalize each readcount.  
-A reference is selected if the percent normalized count is equal or above the input threshold.  
-The selected references are used to independently produce as many consensus sequences as selected references for each barcode.  
+A reference is selected if the percent normalized count is equal or above the input tunable threshold.  
+The selected references are used to independently run the pipeline and produce as many consensus sequences as selected references for each barcode.  
 
-*note: if you're not confident with this option, it is posssible to set the **MI_cutoff** to 100 for getting only the best-matching reference.*
+*note: if you're not confident with this option, it is posssible to set the **MI_cutoff** to 100 for getting only the major best-matching reference.*
 
 # Quick using steps
 
-Step 1 : Get and install Anaconda here if needed. More informations about conda here => https://www.anaconda.com/products/individual <=  
+Step 1 : Get and install Anaconda herein if needed. More informations about conda here => https://www.anaconda.com/products/individual <=  
 ```
 wget https://repo.anaconda.com/archive/Anaconda3-2020.07-Linux-x86_64.sh # download the linux installing script.
 chmod +x Anaconda3-2020.07-Linux-x86_64.sh #give rights to execute the script.
@@ -67,11 +67,11 @@ chmod +x Anaconda3-2020.07-Linux-x86_64.sh #give rights to execute the script.
 conda -h #print conda commands.
 conda -V #print installed conda version.
 ```
-Step 2 : make sure snakemake is installed on your computer.  
+Step 2 : Make sure snakemake is installed on your computer.  
 
 Snakemake 3.9.0 version or above is required for conda interaction.  
 pandas python library is also required for dataframe reading.  
-You can quikly create a new conda environment with the pandas library and the latest available snakemake version by using this command(currently the 5.20.1 version):  
+You can quickly create a new conda environment with the pandas library and the latest available snakemake version by using this command (currently the 5.20.1 version):  
 ```
 conda create -c bioconda -c conda-forge -n VIRiONT_env snakemake-minimal pandas
 ```
@@ -79,7 +79,7 @@ Step 3 : download latest version of the pipeline using git command:
 ```
 git clone https://github.com/VIRiONT-network/VIRiONT.git
 ```
-Step 4 : launch the pipeline by executing:  
+Step 4 : After setting your parameters in the VIRiONT_MI.sh script launch the pipeline by executing:  
 ```
 conda activate VIRiONT_env #only if you previously created this environment for VIRiONT use.  
 cd VIRiONT  
@@ -88,50 +88,50 @@ cd VIRiONT
 
 # Input and configuration
 
-Here is a view on the parameters to check before launching analysis. Currently, to change parameters, you have to open  *VIRiONT/VIRiONT_MI.sh* with a text editor.  
+Herein is a general overview of the tunable parameters to set before launching analysis. Currently, to change parameters, you have to open  *VIRiONT/VIRiONT_MI.sh* with a text editor.  
 All parameters are located in the ###### CONFIGURATION ####### section.  
 
 **GENERAL PARAMETERS:**  
-**data_loc** : path where fastq data are stored. Be sure this path leads on all barcode folders you want to analyse. Currently, only fastq repositories marked as "barcode*" are interpreted as repository data. If needed, rename your rep as "barcode*".  
+**data_loc** : path where fastq data are stored. Be sure this path leads on all barcode folders you want to analyze. Currently, only fastq repositories marked as "barcode*" are interpreted as repository data. If needed, rename your rep as "barcode*".  
 **result_loc** : path leading to the output folders produced by the analysis. NB: the pipeline will recursively create the path, so a previous mkdir is unnecessary.  
-**ref_loc** : path to the file containing all references sequences used for the blastn analysis. We you need to create a new one, check examples in *ref/* folder.  
-**thread_number** : Define number of threads to be used for the analysis.  
+**ref_loc** : path to the custom reference sequence dataset fasta file used by the pipeline especially for the blastn analysis. If you need to create a new one, check examples in *ref/* folder.  
+**thread_number** : define number of threads to be used for the analysis.  
 **mem_cost** : define the memory amount in mb to be used for the analysis.  
 
 **TRIMMING/FILTERING PARAMETERS:**  
-**min_length** : minimal read size required for passing the filtering step.  
-**max_length** : maximal read size required for passing the filtering step.  
-**head** : nucleotid length to be trimmed in 5'.  
-**tail** : nucleotid length to be trimmed in 3'.  
+**min_length** : minimal read lenght required for passing the filtering step.  
+**max_length** : maximal read lenght required for passing the filtering step.  
+**head** : number of nucleotides to be trimmed at the 5'end (forward primer removal).  
+**tail** : number of nucleotides to be trimmed at the 3'end (reverse primer removal).  
 
 **VARIANT CALLING PARAMETERS:**
-**maxdepth** : maximum depth for samtools mpileup.  
-**basequal** : base quality cutoff for samtools mpileup.  
+**maxdepth** : maximum depth for samtools mpileup (sub-sampling of the total amount of reads is possible for a faster analysis).  
+**basequal** : base quality cutoff for samtools mpileup (default parameter of samtools mpileup is set up at 13).  
 
 **CONSENSUS PARAMETERS:**   
-**Vfreq** : minor variant frequency threshold to call the consensus sequence.  
-**mincov** : minimun coverage expected to generate consensus sequence. N is called if below this threshold.  
+**Vfreq** : minor variant frequency threshold to call the consensus sequence. You can generate consensus sequences through a simple 50% majority rule or with a lower minor variant frequency to get degenerated bases.
+**mincov** : minimum coverage expected to generate consensus sequence. N is called if the depth at the position is below this threshold. Of note, a minium depth of 20x is recommended by the Nanopore community.
 
 **MULTI-INFECTION PARAMETER:**  
-**MI_cutoff** : Percentage cutoff for detecting a multiple infection case.  Se more above in the **Multiple Infection case** section.  
+**MI_cutoff** : Percentage cutoff for detecting a multiple infection case. See more above in the **Multiple Infection case** section.  
 
 # Pipeline ouputs
 
-All pipeline outputs are stored in the choosen path (see above) and generate following folders and files:  
+All VIRiONT pipeline outputs are stored in the choosen path (see above) indicated in the VIRiONT_MI.sh script and generate the following folders and files:  
 
-**param_file.txt** : a text file, summarizing parameters used for the current analysis.   
-**00_SUPDATA/BD** : a folder, containing the database built using blast and individual reference sequences.  
+**param_file.txt** : a text file, summarizing parameters used for your current analysis.   
+**00_SUPDATA/DB** : a folder, containing the database built using blast and individual reference sequences.  
 **00_SUPDATA/REFSEQ** : a folder, containing the individual reference sequences.  
 **01_MERGED** : a folder, containing merged fastq.  
-**02_DEHOSTING** : a folder, containing dehosted (non human) bam.  
-**03_FILTERED_TRIMMED** : a folder, containing trimmed fastq by NanoFilt with the given parameters.  
-**04_BLASTN_ANALYSIS** : a folder, containing the blastn analysis results, including the list of reads matching with the best reference, with barplot of reference repartition for each barcode.  
-**05_REFILTERED_FASTQ** : a folder, containing fastq with read corresponding with the corresponding matching references.   
+**02_DEHOSTING** : a folder, containing dehosted (non human) fastq file.  
+**03_FILTERED_TRIMMED** : a folder, containing filtered and trimmed fastq by NanoFilt with the given parameters.  
+**04_BLASTN_ANALYSIS** : a folder, containing the blastn analysis results, including the list of reads matching with the best reference and a barplot of reference repartition for each barcode available as a pdf file.  
+**05_REFILTERED_FASTQ** : a folder, containing fastq with read corresponding with the corresponding best-matching references.   
 **06_PRECONSENSUS** : a folder, containing intermediate data related to the generated preconsensus.  
 **07_BAM** : a folder, containing bam aligned on the preconsensus.  
 **08_VCF** : a folder, containing mpileup and variant calling results.  
 **09_CONSENSUS** : a folder, containing consensus sequences generated by a custom perl script.  
-**10_QC_ANALYSIS** : a folder, containing usefull read metrics at several pipeline steps.  
+**10_QC_ANALYSIS** : a folder, containing useful read metrics at several pipeline steps.  
 **11_PHYLOGENETIC_TREE** : a folder, containing a consensus with matched reference sequences phylogenetic tree.  
 **12_COVERAGE** : a folder, containing coverage table from each bam using bedtools, and coverage plots compiled into one pdf.  
 
