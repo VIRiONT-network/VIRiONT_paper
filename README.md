@@ -15,14 +15,13 @@ barcoding/barcode02/*.fastq
 barcoding/barcode24/*.fastq
 ``` 
 For each barcode, you can find herein the global workflow:  
-**Step1** => merging if there are several fastq in the barcode rep.  
-**Step2** => removing human reads from fastq files (dehosting step).  
-**Step3** => trimming fastq using given parameters (primer removal and read lenght filtering).  
-**Step4** => blastn analysis leads to the selection of the best matching reference(s) among the uploaded custom dataset, based on a best bitscore mapping read count. 
-**Step5** => generation of a final consensus sequence using a custom perl script with a tunable minimal variant frequency :  
+**Step1** => removing human reads from fastq files (dehosting step).  
+**Step2** => trimming fastq using given parameters (primer removal and read lenght filtering).  
+**Step3** => blastn analysis leads to the selection of the best matching reference(s) among the uploaded custom dataset, based on a best bitscore mapping read count.  
+**Step4** => generation of a final consensus sequence using a custom perl script with a tunable minimal variant frequency :  
 (i) a first Minimap2 (option splice) alignment guided by the best matching reference (selected at the blastn step) leads to a intermediate pre-consensus sequence  
 (ii) This latter sequence is used as the sample’s own mapping reference for a second realignment of the reads that enables to generate to the final consensus sequence. Of note, consensus sequence can be called at a tunable minimum depth set up per default at 20X (usually applied among Nanopore community).  
-**Step6** => generation of a phylognenetic tree including consensus and reference sequences of the custom dataset using a Maximum-likelihood statistical method (1000 bootstrap replicates) after a MUSCLE-based-alignment.  
+**Step5** => generation of a phylognenetic tree including consensus and reference sequences of the custom dataset using a Maximum-likelihood statistical method (1000 bootstrap replicates) after a MUSCLE-based-alignment.  
 
 # workflow dag
 
