@@ -7,7 +7,7 @@ Of note, if you plan to use this workflow to analyze shorter or longer amplicons
 
 # Workflow
 
-The pipeline takes as input uncompressed fastq from demultiplexed nanopore data by Guppy, usually stored like this:  
+The pipeline takes as input uncompressed or compressed fastq from demultiplexed nanopore data by Guppy, usually stored like this:  
 ```
 barcoding/barcode01/*.fastq
 barcoding/barcode02/*.fastq
