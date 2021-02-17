@@ -26,7 +26,7 @@ For each barcode, you can find herein the global workflow:
 <!---
 !
 -->
-[image info](./documents/WORKFLOW.png)
+![image info](./documents/WORKFLOW.png)
 
 # Requirements & Tools
 
