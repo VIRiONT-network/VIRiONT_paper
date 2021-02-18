@@ -101,12 +101,12 @@ All parameters are located in the ###### CONFIGURATION ####### section.
 **min_length** : minimal read lenght required for passing the filtering step.  
 **max_length** : maximal read lenght required for passing the filtering step.  
 **min_qual_ONT** : minimal read quality for passing the filtering step. Based on the ONT quality score.  
-**head** : number of nucleotides to be trimmed at the 5'end (forward primer removal).  
-**tail** : number of nucleotides to be trimmed at the 3'end (reverse primer removal).  
+**head_trim** : number of nucleotides to be trimmed at the 5'end (forward primer removal).  
+**tail_trim** : number of nucleotides to be trimmed at the 3'end (reverse primer removal).  
 
-**VARIANT CALLING PARAMETERS:**
+**VARIANT CALLING PARAMETERS:**  
 **maxdepth** : maximum depth for samtools mpileup (sub-sampling of the total amount of reads is possible for a faster analysis).  
-**basequal** : base quality cutoff for samtools mpileup (default parameter of samtools mpileup is set up at 13).  
+**basequality** : base quality cutoff for samtools mpileup (default parameter of samtools mpileup is set up at 13).  
 
 **CONSENSUS PARAMETERS:**   
 **Vfreq** : minor variant frequency threshold to call the consensus sequence. You can generate consensus sequences through a simple 50% majority rule or with a lower minor variant frequency to get degenerated bases.
