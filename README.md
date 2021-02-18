@@ -91,7 +91,7 @@ Herein is a general overview of the tunable parameters to set before launching a
 All parameters are located in the ###### CONFIGURATION ####### section.  
 
 **GENERAL PARAMETERS:**  
-**data_loc** : path where fastq data are stored. Be sure this path leads on all barcode folders you want to analyze. Currently, only fastq repositories marked as "barcode*" are interpreted as repository data. If needed, rename your rep as "barcode*". "barcode12" as an example.
+**data_loc** : path where fastq data are stored. Be sure this path leads on all barcode folders you want to analyze. Currently, only fastq repositories marked as "barcode*" are interpreted as repository data. If needed, rename your rep as "barcode*". "barcode12" as an example.  
 **result_loc** : path leading to the output folders produced by the analysis. NB: the pipeline will recursively create the path, so a previous mkdir is unnecessary.  
 **ref_loc** : path to the custom reference sequence dataset fasta file used by the pipeline especially for the blastn analysis. If you need to create a new one, check examples in *ref/* folder.  
 **thread_number** : define number of threads to be used for the analysis.  
