@@ -100,6 +100,7 @@ All parameters are located in the ###### CONFIGURATION ####### section.
 **TRIMMING/FILTERING PARAMETERS:**  
 **min_length** : minimal read lenght required for passing the filtering step.  
 **max_length** : maximal read lenght required for passing the filtering step.  
+**min_qual_ONT** : minimal read quality for passing the filtering step. Based on the ONT quality score.  
 **head** : number of nucleotides to be trimmed at the 5'end (forward primer removal).  
 **tail** : number of nucleotides to be trimmed at the 3'end (reverse primer removal).  
 
