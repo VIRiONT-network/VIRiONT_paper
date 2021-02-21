@@ -5,19 +5,19 @@ import pandas as pd
 
 configfile : "config/params.yaml"
 
-datapath=config['PathToData']
+datapath=config['data_loc']
 if (datapath[-1] != "/"):
 	datapath=datapath+"/"
-resultpath=config['PathToResult']
+resultpath=config['result_loc']
 if (resultpath[-1] != "/"):
 	resultpath=resultpath+"/"
-refpath=config['PathToReference']
-trim_min=config['Lmin']
-trim_max=config['Lmax']
-trim_head=config['headcrop']
-trim_tail=config['tailcrop']
-quality_read=config['quality']
-MI_cutoff=config['multiinf']
+refpath=config['ref_loc']
+trim_min=config['min_length']
+trim_max=config['max_length']
+trim_head=config['head_trim']
+trim_tail=config['tail_trim']
+quality_read=config['min_qual_ONT']
+MI_cutoff=config['MI_cutoff']
 
 
 #NanoFilt Command construction with input parameters

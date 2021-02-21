@@ -6,22 +6,22 @@ import pandas as pd
 
 configfile : "config/params.yaml"
 
-datapath=config['PathToData']
+datapath=config['data_loc']
 if (datapath[-1] != "/"):
 	datapath=datapath+"/"
-resultpath=config['PathToResult']
+resultpath=config['result_loc']
 if (resultpath[-1] != "/"):
 	resultpath=resultpath+"/"
-refpath=config['PathToReference']
-variant_frequency=config['variantfrequency']
-mincov_cons=config['mincov']
-trim_min=config['Lmin']
-trim_max=config['Lmax']
-quality_read=config['quality']
-trim_head=config['headcrop']
-trim_tail=config['tailcrop']
-MI_cutoff=config['multiinf']
-mpileup_depth=config['depth']
+refpath=config['ref_loc']
+variant_frequency=config['Vfreq']
+mincov_cons=config['min_cov']
+trim_min=config['min_length']
+trim_max=config['max_length']
+quality_read=config['min_qual_ONT']
+trim_head=config['head_trim']
+trim_tail=config['tail_trim']
+MI_cutoff=config['MI_cutoff']
+mpileup_depth=config['max_depth']
 mpileup_basequal=config['basequality']
 
 
