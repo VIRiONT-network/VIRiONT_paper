@@ -2,17 +2,20 @@
 ##########################    CONFIGURATION    #################################
 ################################################################################
 
+#/!\ WARNING /!\
+#Be sure to always keep the following synthax for each parameters: my_param[space]:[space]my_value
+
 ################################################################################
 #######################    GENERAL PARAMETERS    ###############################
 ################################################################################
 #fastq location / Define path where the "barcode*" rep are stored
-data_loc : "/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/DATA_HBV_TEST"
+data_loc : "/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/"
 #output location / Define path where storing analysis results 
 result_loc : "/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/TEST_VIRIONT_IMPROVE"
 #custom reference file to use /  Path to fastafile containing reference sequences for blast
 ref_loc : "ref/HBV_subtype_V2_noPrimers.fasta"
 #core number / Define number of threads to use for the analysis
-thread_number : 8
+thread_number : 10
 #memory cost in mb / Define number of threads to use for the analysis
 mem_cost : 32000
 #################################################################################
@@ -33,7 +36,7 @@ tail_trim : 21
 #################################################################################
 
 #################################################################################
-##################    VARIANT CALLING PARAMETERS    ##########################
+####################    VARIANT CALLING PARAMETERS    ###########################
 #################################################################################
 ##maximum depth for samtools mpileup
 max_depth : 1000000
@@ -55,4 +58,4 @@ min_cov : 20
 #################################################################################
 ##Multi infection threshold cutoff in percent / cutoff=count(Blastref_reads)/count(majoritaryBlastref_reads)*100
 MI_cutoff : 20
-
+#################################################################################
