@@ -13,16 +13,26 @@ resultpath=config['result_loc']
 if (resultpath[-1] != "/"):
 	resultpath=resultpath+"/"
 refpath=config['ref_loc']
-variant_frequency=config['Vfreq']
-mincov_cons=config['min_cov']
 trim_min=config['min_length']
 trim_max=config['max_length']
-quality_read=config['min_qual_ONT']
 trim_head=config['head_trim']
 trim_tail=config['tail_trim']
+quality_read=config['min_qual_ONT']
 MI_cutoff=config['MI_cutoff']
+mincov_cons=config['min_cov']
+variant_frequency=config['Vfreq']
 mpileup_depth=config['max_depth']
 mpileup_basequal=config['basequality']
+
+#Read MI results from VIRiONT_MI1.py
+data_multiinf = resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv"
+try:
+    multiinf_table = pd.read_csv(resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv",sep="\t",names=["barcode", "reference", "ratio"])
+except:
+    sys.exit("The '04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv' file produced during the blast step is missing. Exiting.")
+sample_list=list(multiinf_table['barcode'])
+reference_list=list(multiinf_table['reference'])
+assoc_sample_ref_number=len(sample_list)
 
 
 #get database name
@@ -37,13 +47,6 @@ BARCODE=[]
 for BC in barcode_list:
 	barcode=str(os.path.basename(BC))
 	BARCODE.append(barcode)
-
-#Read MI results from VIRiONT_MI1.py
-data_multiinf = resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv"
-multiinf_table = pd.read_csv(resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv",sep="\t",names=["barcode", "reference", "ratio"])
-sample_list=list(multiinf_table['barcode'])
-reference_list=list(multiinf_table['reference'])
-assoc_sample_ref_number=len(sample_list)
 
 #produce read list
 readlist=[]

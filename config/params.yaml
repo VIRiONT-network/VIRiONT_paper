@@ -9,11 +9,11 @@
 #######################    GENERAL PARAMETERS    ###############################
 ################################################################################
 #fastq location / Define path where the "barcode*" rep are stored
-data_loc : "/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/"
+data_loc : /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/DATA_HBV_TEST
 #output location / Define path where storing analysis results 
-result_loc : "/srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/TEST_VIRIONT_IMPROVE"
+result_loc : /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/TEST_VIRIONT_IMPROVE
 #custom reference file to use /  Path to fastafile containing reference sequences for blast
-ref_loc : "ref/HBV_subtype_V2_noPrimers.fasta"
+ref_loc : ref/test.fasta
 #core number / Define number of threads to use for the analysis
 thread_number : 10
 #memory cost in mb / Define number of threads to use for the analysis

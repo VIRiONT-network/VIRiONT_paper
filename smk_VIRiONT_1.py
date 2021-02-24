@@ -18,6 +18,97 @@ trim_head=config['head_trim']
 trim_tail=config['tail_trim']
 quality_read=config['min_qual_ONT']
 MI_cutoff=config['MI_cutoff']
+mincov_cons=config['min_cov']
+variant_frequency=config['Vfreq']
+mpileup_depth=config['max_depth']
+mpileup_basequal=config['basequality']
+
+#Check if input data are present / get all barcodes in a list after demultiplexing 
+barcode_list = glob.glob(datapath+"barcode*")
+if (len(barcode_list) < 1):
+	sys.exit("No barcode repositories found in the indicated path. Please check the 'data_loc' parameter. Exiting.")
+else:
+	BARCODE=[]
+	for BC in barcode_list:
+		barcode=str(os.path.basename(BC))
+		BARCODE.append(barcode)
+
+#Check reference fasta file sanity / get database name
+def read_fasta(file):   
+    fastas={}
+    fasta_file=open(file,"r")
+    for line in fasta_file:
+        if (line[0]=='>'):
+            header=line
+            fastas[header]=''
+        else:
+            fastas[header]+=line
+    fasta_file.close()
+    return fastas
+try:
+	ref_list=read_fasta(refpath) 
+except:
+	sys.exit("No fasta reference file found in the indicated path. Please check the 'ref_loc' parameter. Exiting.")
+if (len(ref_list) < 1):
+	sys.exit("No fasta sequence can be detected in the indicated 'ref_loc' file. Please check your format file. Exiting.")
+else:
+	filename=os.path.basename(refpath)
+	list_split=filename.split(".")
+	database_name=list_split[0]
+
+#Check parameter sanity
+#trim_min
+try:
+	trim_min=int(trim_min)
+except:
+	sys.exit("A numeric value is expected for the 'min_length' parameter. Please check this parameter. Exiting.")
+#trim_max
+try:
+	trim_max=int(trim_max)
+except:
+	sys.exit("A numeric value is expected for the 'max_length' parameter. Please check this parameters. Exiting.")
+#trim_head
+try:
+	trim_head=int(trim_head)
+except:
+	sys.exit("A numeric value is expected for the 'head_trim' parameter. Please check this parameters. Exiting.")
+#trim_tail
+try:
+	trim_tail=int(trim_tail)
+except:
+	sys.exit("A numeric value is expected for the 'tail_trim' parameter. Please check this parameters. Exiting.")
+#quality_read
+try:
+	quality_read=int(quality_read)
+except:
+	sys.exit("A numeric value is expected for the 'min_qual_ONT' parameter. Please check this parameters. Exiting.")
+#MI_cutoff
+try:
+	MI_cutoff=int(MI_cutoff)
+except:
+	sys.exit("A numeric value is expected for the 'MI_cutoff' parameter. Please check this parameters. Exiting.")
+#mpileup_depth
+try:
+	mpileup_depth=int(mpileup_depth)
+except:
+	sys.exit("A numeric value is expected for the 'max_depth' parameter. Please check this parameters. Exiting.")
+#mpileup_basequal
+try:
+	mpileup_basequal=int(mpileup_basequal)
+except:
+	sys.exit("A numeric value is expected for the 'basequality' parameter. Please check this parameters. Exiting.")
+#mincov_cons
+try:
+	mincov_cons=int(mincov_cons)
+except:
+	sys.exit("A numeric value is expected for the 'min_cov' parameter. Please check this parameters. Exiting.")
+#variant_frequency
+try:
+	variant_frequency=float(variant_frequency)
+except:
+	sys.exit("A numeric value is expected for the 'Vfreq' parameter. Please check this parameters. Exiting.")
+if ((variant_frequency==0) or (variant_frequency>=1)):
+	sys.exit("The Variant frequency should be set between 0 and 1. Please check the 'Vfreq' parameters. Exiting.")
 
 
 #NanoFilt Command construction with input parameters
@@ -43,19 +134,6 @@ else:
 	qfiltering=""
 
 
-#get database name
-filename=os.path.basename(refpath)
-list_split=filename.split(".")
-database_name=list_split[0]
-
-
-#get all barcodes in a list after demultiplexing
-barcode_list = glob.glob(datapath+"barcode*")
-BARCODE=[]
-for BC in barcode_list:
-	barcode=str(os.path.basename(BC))
-	BARCODE.append(barcode)
-
 #final output
 rule pipeline_ending:
 	input:
@@ -71,7 +149,7 @@ rule pipeline_ending:
 		#merged_data = resultpath+"04_BLASTN_ANALYSIS/ALL_refcount.tsv"
 		######## FINAL OUTPUTS ########		
 		#blastn_result=expand(resultpath+"04_BLASTN_ANALYSIS/{barcode}_blastnR.tsv",barcode=BARCODE),
-		summ_multiinf = resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv",
+		#summ_multiinf = resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv",
 
 rule merging_fastq:
 	message:
