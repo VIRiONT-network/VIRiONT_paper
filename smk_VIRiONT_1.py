@@ -84,9 +84,12 @@ except:
 	sys.exit("A numeric value is expected for the 'min_qual_ONT' parameter. Please check this parameters. Exiting.")
 #MI_cutoff
 try:
-	MI_cutoff=int(MI_cutoff)
+	MI_cutoff=float(MI_cutoff)
 except:
 	sys.exit("A numeric value is expected for the 'MI_cutoff' parameter. Please check this parameters. Exiting.")
+if (MI_cutoff==0 or MI_cutoff>100):
+	sys.exit("The Multi Infection cutoff should be set over 0 and not exceed 100. Exiting.")
+
 #mpileup_depth
 try:
 	mpileup_depth=int(mpileup_depth)
@@ -149,7 +152,7 @@ rule pipeline_ending:
 		#merged_data = resultpath+"04_BLASTN_ANALYSIS/ALL_refcount.tsv"
 		######## FINAL OUTPUTS ########		
 		#blastn_result=expand(resultpath+"04_BLASTN_ANALYSIS/{barcode}_blastnR.tsv",barcode=BARCODE),
-		#summ_multiinf = resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv",
+		summ_multiinf = resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv",
 
 rule merging_fastq:
 	message:
