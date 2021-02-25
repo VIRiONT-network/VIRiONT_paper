@@ -156,7 +156,7 @@ rule pipeline_ending:
 
 rule merging_fastq:
 	message:
-		"Merging fastq/fastq.gz files from /datapath/{wildcards.barcode}/ to the /outputpath/01_MERGED/ folder."
+		"Merging the fastq/fastq.gz files from the {wildcards.barcode}/ folder."
 	input: 
 		barcode_rep = datapath+"{barcode}/",
 	output: 
@@ -175,7 +175,7 @@ rule merging_fastq:
 
 rule get_hg19:
 	message:
-		"download if necessary the hg19 reference genome. Executed once per VIRiONT installation."
+		"Download if necessary the hg19 reference genome. Stored in the VIRiONT/ref/ folder. Executed once per VIRiONT installation."
 	output:
 		hg19_ref =  "ref/hg19.fa"
 	shell:
@@ -198,7 +198,7 @@ rule index_hg19:
 
 rule hg19_dehosting:
 	message:
-		"Aligning /outputpath/01_MERGED/{wildcards.barcode}_merged.fastq on human genome for identifying host reads using minimap2."
+		"Aligning reads from {wildcards.barcode} fastq on human genome for identifying host reads using minimap2."
 	input:
 		merged_fastq = rules.merging_fastq.output.merged_fastq ,
 		ref_file= rules.index_hg19.output.hg19_index
@@ -214,7 +214,7 @@ rule hg19_dehosting:
 
 rule nonhuman_read_extract:
 	message:
-		"Extract unaligned reads from {wildcards.barcode}_human.bam using samtools."
+		"Extract unaligned reads from {wildcards.barcode} using samtools."
 	input:
 		human_bam = rules.hg19_dehosting.output.human_bam
 	output:
@@ -226,7 +226,7 @@ rule nonhuman_read_extract:
 
 rule converting_bam_fastq:
 	message:
-		"Convert {wildcards.barcode}_nonhuman.bam to {wildcards.barcode}_nonhuman.fastq using bedtools."
+		"Convert the {wildcards.barcode} bam into fastq containing only viral reads using bedtools."
 	input:
 		nonhuman_bam = rules.nonhuman_read_extract.output.nonhuman_bam 
 	output:
@@ -240,7 +240,7 @@ rule converting_bam_fastq:
 
 rule trimming_fastq:
 	message:
-		"Filtering and trimming {wildcards.barcode}_meta.fastq using NanoFilt with input parameters."
+		"Filtering and trimming viral reads from {wildcards.barcode} using NanoFilt with input parameters."
 	input:
 		meta_fastq = rules.converting_bam_fastq.output.nonhuman_fastq
 	output:
@@ -252,7 +252,7 @@ rule trimming_fastq:
 
 rule converting_fastq_fasta:
 	message:
-		"Converting {wildcards.barcode}_meta.fastq into {wildcards.barcode}.fasta for blastn research using seqtk."
+		"Converting the {wildcards.barcode} reads into fasta sequences for blastn research using seqtk."
 	input:
 		nonhuman_fastq = rules.trimming_fastq.output.trimmed_fastq
 	output:
@@ -278,7 +278,7 @@ rule split_reference:
 
 rule make_db:
 	message:
-		"Build blast database from input reference using makeblastdb."
+		"Build blast database from input reference {refpath} using makeblastdb."
 	input:
 		ref_fasta_file = refpath 
 	output:
@@ -294,7 +294,7 @@ rule make_db:
 
 rule blastn_ref:
 	message:
-		"Blasting {wildcards.barcode}.fasta on the custom database."
+		"Blasting {wildcards.barcode} reads on the custom database."
 	input: 
 		fasta_file = rules.converting_fastq_fasta.output.converted_fastq,
 		database = rules.make_db.output.database ,
@@ -313,6 +313,8 @@ rule blastn_ref:
 		"""   
 
 rule count_refmatching:
+	message:
+		"Count matching reads for each references in the {wildcards.barcode}."
 	input:
 		R_data = rules.blastn_ref.output.R_data ,
 		ref_table = rules.split_reference.output.ref_rep,
@@ -331,6 +333,8 @@ rule count_refmatching:
 		"""  
 
 rule MI_analysis:
+	message:
+		"Summarize matched references for each barcode into the '04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv' file, mandatory for the following."
 	input:
 		count_ref_data = expand(rules.count_refmatching.output.ref_count,barcode=BARCODE)
 	output:

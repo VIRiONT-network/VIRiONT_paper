@@ -150,7 +150,7 @@ rule write_param_used:
 
 rule getfastqlist:
     message:
-        "Get read headers from {wildcards.barcode}_nonhuman.fastq matching with {wildcards.reference} using R."
+        "Get read names from {wildcards.barcode} matching with {wildcards.reference} using R."
     input:
         blastn_result = resultpath+"04_BLASTN_ANALYSIS/{barcode}_blastnR.tsv"
     output:
@@ -162,7 +162,7 @@ rule getfastqlist:
 
 rule extract_matching_read:
 	message:
-		"Filtrate read from {wildcards.barcode}_nonhuman.fastq into {wildcards.barcode}/{wildcards.reference}_filtered.fastq using seqkit."
+		"Extract reads from {wildcards.barcode} matching with the '{wildcards.reference}' reference using seqkit."
 	input:
 		read_list = rules.getfastqlist.output.fastqlist,
 		nonhuman_fastq = resultpath + '03_FILTERED_TRIMMED/{barcode}_filtered_trimmed.fastq'      
@@ -177,7 +177,7 @@ rule extract_matching_read:
 
 rule filtered_fastq_alignemnt:
     message:
-        "Align {wildcards.barcode}/{wildcards.reference}_filtered.fastq on {wildcards.reference}.fasta using minimap2."
+        "Align the {wildcards.barcode}-{wildcards.reference} reads on '{wildcards.reference}' reference using minimap2."
     input:   
         merged_filtered = rules.extract_matching_read.output.merged_filtered ,
         split_ref_path = resultpath+"00_SUPDATA/REFSEQ/" ,
@@ -193,7 +193,7 @@ rule filtered_fastq_alignemnt:
 
 rule compute_coverage:
     message:
-        "Compute coverage from {wildcards.barcode}/{wildcards.reference}_sorted.bam using bedtools."
+        "Compute read coverage from {wildcards.barcode} for the '{wildcards.reference}' reference using bedtools."
     input:
         sorted_bam = rules.filtered_fastq_alignemnt.output.spliced_bam
     output:
@@ -207,7 +207,7 @@ rule compute_coverage:
 
 rule plot_coverage:
     message:
-        "Plot coverage summary using R."
+        "Plot coverage summary for all barcodes using R."
     input:
         cov = covfile
     output:
@@ -223,7 +223,7 @@ rule plot_coverage:
 
 rule variant_calling:
     message:
-        "Variant calling on {wildcards.barcode}/{wildcards.reference}_sorted.bam aligned bam using samtools."
+        "Count nucleotidic base repartition from {wildcards.barcode} aligned reads for each position of the '{wildcards.reference}' reference  using samtools."
     input:
         split_ref_path = resultpath+"00_SUPDATA/REFSEQ/"  ,
         sorted_bam = rules.filtered_fastq_alignemnt.output.spliced_bam ,
@@ -238,7 +238,7 @@ rule variant_calling:
 
 rule generate_consensus:
     message:
-        "Generate consensus sequence from /{wildcards.barcode}/{wildcards.reference}_sammpileup.vcf using perl script."
+        "Generate pre-consensus sequence for the {wildcards.barcode} based on the '{wildcards.reference}' reference."
     input:
         vcf = rules.variant_calling.output.vcf
     output:
@@ -251,6 +251,8 @@ rule generate_consensus:
         """
 
 rule precons_alignemnt:
+    message:
+        "Align the '{wildcards.reference}' selected reads from the {wildcards.barcode} on the pre-consensus sequence."
     input:
         fasta_cons = rules.generate_consensus.output.fasta_cons,
         merged_filtered = rules.extract_matching_read.output.merged_filtered 
@@ -266,7 +268,7 @@ rule precons_alignemnt:
 
 rule variant_calling_precons:
     message:
-        "Variant calling on {wildcards.barcode}/{wildcards.reference}_sorted.bam aligned bam using samtools."
+        "Nucleotidic base count for the {wildcards.barcode} aligned on the pre-consensus sequence."
     input:
         fasta_cons = rules.generate_consensus.output.fasta_cons,
         consbam = rules.precons_alignemnt.output.consbam ,
@@ -281,7 +283,7 @@ rule variant_calling_precons:
 
 rule generate_finalconsensus:
     message:
-        "Generate consensus sequence from /{wildcards.barcode}/{wildcards.reference}_sammpileup.vcf using perl script."
+        "Generate the final consensus sequence for the {wildcards.barcode}."
     input:
         vcf = rules.variant_calling_precons.output.vcf
     output:
@@ -296,7 +298,7 @@ rule generate_finalconsensus:
 
 rule read_metric:
     message:
-        "Extract read sequence from  MERGED/TRIMMED/DEHOSTED {wildcards.barcode}.fastq for metric computation."
+        "Extract read sequence from  raw / dehosted / filtered {wildcards.barcode} reads for metric computation."
     input:
         raw_fastq = resultpath+"01_MERGED/{barcode}_merged.fastq"  ,
         trimmed_fastq = resultpath+"03_FILTERED_TRIMMED/{barcode}_filtered_trimmed.fastq" ,
@@ -336,7 +338,7 @@ rule read_metric:
 
 rule read_metric_MI:
     message:
-        "Extract read sequence from REFERENCE_FILTERED {wildcards.barcode}.fastq for metric computation."
+        "Extract read sequence from '{wildcards.reference}' matched reads in the {wildcards.barcode} for metric computation."
     input:
         bestmatched_fastq = rules.extract_matching_read.output.merged_filtered ,
     output:
@@ -386,6 +388,8 @@ rule compute_metric:
         """
 
 rule filterIncompleteSeq:
+    message:
+        "Filter consensus sequences containing N bases above 10%."
     input:
         allcons = expand(consfile),
     output:
