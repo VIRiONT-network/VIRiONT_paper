@@ -2,7 +2,7 @@
 
 # Quick presentation
 
-VIRiONT pipeline is designed to analyze data from amplicon-approach-based Nanopore sequencing. It was primarily developed to analyze data from hepatitis B virus (HBV) complete genome long read sequencing after an amplification step of the full genome in one fragment (about 3kb in lenght). It was secondarily extended to hepatitis delta virus (HDV, about 1.7kb in lenght). However, this pipeline can be adapted for other viruses and pathogens as well. You just need to upload a custom reference dataset specific to the pathogen and adapted to the amplicon design used prior your ONT sequencing.
+VIRiONT pipeline is designed to analyze data from amplicon-approach-based Nanopore sequencing. It was primarily developed to analyze data from hepatitis B virus (HBV) complete genome long read sequencing after an amplification step of the full genome in one fragment (about 3kb in lenght). It was secondarily extended to hepatitis delta virus (HDV, about 1.7kb in lenght). However, this pipeline can be adapted for other viruses and pathogens as well. You just need to upload a custom reference dataset specific to the pathogen and adapted to the amplicon design used prior your ONT sequencing.  
 Of note, if you plan to use this workflow to analyze shorter or longer amplicons, be sure to chose and adapt parameters of the read lenght filtering steps, see below.
 
 # Workflow
@@ -14,18 +14,16 @@ barcoding/barcode02/*.fastq
 ...
 barcoding/barcode24/*.fastq
 ``` 
+
 For each barcode, you can find herein the global workflow:  
 **Step1** => removing human reads from fastq files (dehosting step).  
 **Step2** => trimming fastq using given parameters (primer removal and read lenght filtering).  
 **Step3** => blastn analysis leads to the selection of the best matching reference(s) among the uploaded custom dataset, based on a best bitscore mapping read count.  
 **Step4** => generation of a final consensus sequence using a custom perl script with a tunable minimal variant frequency :  
-(i) a first Minimap2 (option splice) alignment guided by the best matching reference (selected at the blastn step) leads to a intermediate pre-consensus sequence  
+(i) a first Minimap2 (option splice) alignment guided by the best matching reference (selected at the blastn step) leads to a intermediate pre-consensus sequence.  
 (ii) This latter sequence is used as the sample’s own mapping reference for a second realignment of the reads that enables to generate to the final consensus sequence. Of note, consensus sequence can be called at a tunable minimum depth set up per default at 20X (usually applied among Nanopore community).  
 **Step5** => generation of a phylognenetic tree including consensus and reference sequences of the custom dataset using a Maximum-likelihood statistical method (1000 bootstrap replicates) after a MUSCLE-based-alignment.  
 
-<!---
-!
--->
 ![image info](./documents/WORKFLOW.png)
 
 # Requirements & Tools
@@ -35,7 +33,7 @@ Environment files and software versions are available in the *env/* folder.
 
 *filtering and trimming* : NanoFilt v2.7.1. See => https://github.com/wdecoster/nanofilt <=  
 *dehosting and mapping* : minimap2 v2.17. See => https://github.com/lh3/minimap2 <=  
-*bam management* : samtools v1.3.1. See => http://samtools.github.io/ <=  
+*bam management and pileup* : samtools v1.3.1. See => http://samtools.github.io/ <=  
 *blastn analysis* : blast v2.5.0. See => https://blast.ncbi.nlm.nih.gov/Blast.cgi?PAGE_TYPE=BlastDocs&DOC_TYPE=Download <=  
 *fastq and fasta management* : seqkit v0.12.1. See => https://github.com/shenwei356/seqkit <=  
 *fastq and fasta management* : seqtk v1.3. See => https://github.com/lh3/seqtk <=   
@@ -48,7 +46,7 @@ Environment files and software versions are available in the *env/* folder.
 # Multiple Infection case
 
 VIRiONT can detect co-infection by several genotypes for instance or contamination case when processing to the blastn analysis step.  
-Based on the best bitscore value, we proceed to a readcount matching for each reference sequence. 
+Based on the best bitscore value, we proceed to a readcount matching for each reference sequence.   
 The best-matching reference is used to percent normalize each readcount.  
 A reference is selected if the percent normalized count is equal or above the input tunable threshold.  
 The selected references are used to independently run the pipeline and produce as many consensus sequences as selected references for each barcode.  
@@ -57,7 +55,9 @@ The selected references are used to independently run the pipeline and produce a
 
 # Quick using steps
 
-Step 1 : Get and install Anaconda herein if needed. More informations about conda here => https://www.anaconda.com/products/individual <=  
+**Step 1 :** Get and install Anaconda herein if needed.  
+More informations about conda here => https://www.anaconda.com/products/individual <=  
+
 ```
 wget https://repo.anaconda.com/archive/Anaconda3-2020.07-Linux-x86_64.sh # download the linux installing script.
 chmod +x Anaconda3-2020.07-Linux-x86_64.sh #give rights to execute the script.
@@ -66,19 +66,25 @@ chmod +x Anaconda3-2020.07-Linux-x86_64.sh #give rights to execute the script.
 conda -h #print conda commands.
 conda -V #print installed conda version.
 ```
-Step 2 : Make sure snakemake is installed on your computer.  
+
+**Step 2 :** Make sure snakemake is installed on your computer.  
 
 Snakemake 3.9.0 version or above is required for conda interaction.  
 pandas python library is also required for dataframe reading.  
 You can quickly create a new conda environment with the pandas library and the latest available snakemake version by using this command (currently the 5.20.1 version):  
+
 ```
 conda create -c bioconda -c conda-forge -n VIRiONT_env snakemake-minimal pandas
 ```
-Step 3 : download latest version of the pipeline using git command:  
+
+**Step 3 :** Download latest version of the pipeline using git command:  
+
 ```
 git clone https://github.com/VIRiONT-network/VIRiONT.git
 ```
-Step 4 : After setting your parameters in the launch_VIRiONT.sh script launch the pipeline by executing:  
+
+**Step 4 :** After setting your parameters in the launch_VIRiONT.sh script launch the pipeline by executing:  
+
 ```
 conda activate VIRiONT_env #only if you previously created this environment for VIRiONT use.  
 cd VIRiONT  
@@ -87,7 +93,7 @@ cd VIRiONT
 
 # Input and configuration
 
-Herein is a general overview of the tunable parameters to set before launching analysis. Currently, to change parameters, you have to open  *VIRiONT/launch_VIRiONT.sh* with a text editor.  
+Herein is a general overview of the tunable parameters to set before launching analysis. Currently, to change parameters, you have to open  *config/params.yaml* with a text editor.  
 All parameters are located in the ###### CONFIGURATION ####### section.  
 
 **GENERAL PARAMETERS:**  
@@ -100,12 +106,12 @@ All parameters are located in the ###### CONFIGURATION ####### section.
 **TRIMMING/FILTERING PARAMETERS:**  
 **min_length** : minimal read lenght required for passing the filtering step.  
 **max_length** : maximal read lenght required for passing the filtering step.  
-**head** : number of nucleotides to be trimmed at the 5'end (forward primer removal).  
-**tail** : number of nucleotides to be trimmed at the 3'end (reverse primer removal).  
+**head_trim** : number of nucleotides to be trimmed at the 5'end (forward primer removal).  
+**tail_trim** : number of nucleotides to be trimmed at the 3'end (reverse primer removal).  
 
 **VARIANT CALLING PARAMETERS:**
-**maxdepth** : maximum depth for samtools mpileup (sub-sampling of the total amount of reads is possible for a faster analysis).  
-**basequal** : base quality cutoff for samtools mpileup (default parameter of samtools mpileup is set up at 13).  
+**max_depth** : maximum depth for samtools mpileup (sub-sampling of the total amount of reads is possible for a faster analysis).  
+**basequality** : base quality cutoff for samtools mpileup (default parameter of samtools mpileup is set up at 13).  
 
 **CONSENSUS PARAMETERS:**   
 **Vfreq** : minor variant frequency threshold to call the consensus sequence. You can generate consensus sequences through a simple 50% majority rule or with a lower minor variant frequency to get degenerated bases.
