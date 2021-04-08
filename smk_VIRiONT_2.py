@@ -23,6 +23,8 @@ mincov_cons=config['min_cov']
 variant_frequency=config['Vfreq']
 mpileup_depth=config['max_depth']
 mpileup_basequal=config['basequality']
+mutation_research=config['HBV_mut']
+mutation_table_path=config['path_table']
 
 #Read MI results from VIRiONT_MI1.py
 data_multiinf = resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv"
@@ -99,9 +101,20 @@ filtseqfilecount=[]
 for i in range(0,assoc_sample_ref_number):
 	filtseqfilecount.append(resultpath +"10_QC_ANALYSIS/"+sample_list[i]+"/"+reference_list[i]+"_filterseqcount.csv")
 
+#produce vcf files on preconsensus
+vcf_mut=[]
+for i in range(0,assoc_sample_ref_number):
+	vcf_mut.append(resultpath +"13_MUTATION_SCREENING/"+sample_list[i]+"/"+reference_list[i]+"_sammpileup.vcf_variants.txt")
 
-rule pipeline_output:
-    input:
+#produce table with mutation screen
+table_mut=[]
+for i in range(0,assoc_sample_ref_number):
+	table_mut.append(resultpath +"13_MUTATION_SCREENING/"+sample_list[i]+"/"+sample_list[i]+"_"+reference_list[i]+"_PreCore.csv")
+
+
+if mutation_research=="ACTIVATE": 
+    rule pipeline_output:
+        input:
         ######## INTERMEDIATE FILES ########
         #readlist,
         #fastq_filtered,
@@ -109,19 +122,47 @@ rule pipeline_output:
         #filtseqfile,
         #vcffile,
         #consfile,
+        ######## MUTATION ########
+            #vcf_mut,
+            table_mut,
+        #vcf_mut,
         ######## COVERAGE ANALYSIS ########  
         #covfile,
-        cov_plot = resultpath+"12_COVERAGE/cov_plot.pdf",
+            cov_plot = resultpath+"12_COVERAGE/cov_plot.pdf",
         ######## CONSENSUS FILES ########       
-        cons_seq = resultpath+"09_CONSENSUS/all_cons.fasta",
+            cons_seq = resultpath+"09_CONSENSUS/all_cons.fasta",
         ######## QC METRIC FILES ########  
-        full_summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_table.csv",
+            full_summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_table.csv",
         ######## QC PHYLOGENETIC TREE FILES ########  
         #allseq = resultpath+"11_PHYLOGENETIC_TREE/allseq.fasta",
         #align_seq = resultpath+"11_PHYLOGENETIC_TREE/align_seq.fasta",
         #NWK_tree = resultpath+"11_PHYLOGENETIC_TREE/IQtree_analysis.treefile",
-        tree_pdf = resultpath+"11_PHYLOGENETIC_TREE/RADIAL_tree.pdf",
-        report = resultpath+"param_file.txt"
+            tree_pdf = resultpath+"11_PHYLOGENETIC_TREE/RADIAL_tree.pdf",
+            report = resultpath+"param_file.txt",
+else:
+    rule pipeline_output:
+        input:
+        ######## INTERMEDIATE FILES ########
+        #readlist,
+        #fastq_filtered,
+        #bamfile,
+        #filtseqfile,
+        #vcffile,
+        #consfile,
+        #vcf_mut,
+        ######## COVERAGE ANALYSIS ########  
+        #covfile,
+            cov_plot = resultpath+"12_COVERAGE/cov_plot.pdf",
+        ######## CONSENSUS FILES ########       
+            cons_seq = resultpath+"09_CONSENSUS/all_cons.fasta",
+        ######## QC METRIC FILES ########  
+            full_summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_table.csv",
+        ######## QC PHYLOGENETIC TREE FILES ########  
+        #allseq = resultpath+"11_PHYLOGENETIC_TREE/allseq.fasta",
+        #align_seq = resultpath+"11_PHYLOGENETIC_TREE/align_seq.fasta",
+        #NWK_tree = resultpath+"11_PHYLOGENETIC_TREE/IQtree_analysis.treefile",
+            tree_pdf = resultpath+"11_PHYLOGENETIC_TREE/RADIAL_tree.pdf",
+            report = resultpath+"param_file.txt",
 
 
 rule write_param_used:
@@ -145,6 +186,7 @@ rule write_param_used:
         textfile.write("variant calling base quality threeshold:"+str(mpileup_basequal)+"\n")
         textfile.write("multi-infection cutoff:"+str(MI_cutoff)+"\n")
         textfile.write("variant frequency:"+str(variant_frequency)+"\n")
+        textfile.write("mutation research:"+str(mutation_research)+"\n")
         textfile.close()
 
 
@@ -243,7 +285,8 @@ rule generate_consensus:
         vcf = rules.variant_calling.output.vcf
     output:
         fasta_cons_temp = temp(resultpath+"06_PRECONSENSUS/SEQUENCES/{barcode}/{reference}_cons_temp.fasta") ,
-        fasta_cons = resultpath+"06_PRECONSENSUS/SEQUENCES/{barcode}/{reference}_cons.fasta"
+        fasta_cons = resultpath+"06_PRECONSENSUS/SEQUENCES/{barcode}/{reference}_cons.fasta",
+        vcf = resultpath+"06_PRECONSENSUS/VCF/{barcode}/{reference}_sammpileup.vcf_variants.txt"
     shell:
         """
         perl script/pathogen_varcaller_MINION.PL {input} 0.5 {output.fasta_cons_temp} {mincov_cons}
@@ -467,3 +510,35 @@ rule plotTree:
         "env/ETE3.yaml"
     shell:
         "python3 script/makeTREE.py {input.NWK_data} {output.tree_pdf} "
+
+rule copy_vcf_result:
+    message:
+        "Copying vcf results into the mutation folder."
+    input:
+        vcf = rules.generate_consensus.output.vcf ,
+    output:
+        vcf = resultpath+"13_MUTATION_SCREENING/{barcode}/{reference}_sammpileup.vcf_variants.txt"
+    shell:
+        "cp {input.vcf} {output.vcf}"
+
+rule search_HBV_mutation:
+    input:
+        vcf = rules.copy_vcf_result.output.vcf,
+        table_mut = mutation_table_path + "mutation_{reference}.csv"
+    output:
+        result_PC = resultpath+"13_MUTATION_SCREENING/{barcode}/{barcode}_{reference}_PreCore.csv",
+        result_DS = resultpath+"13_MUTATION_SCREENING/{barcode}/{barcode}_{reference}_DomaineS.csv",
+        result_RT = resultpath+"13_MUTATION_SCREENING/{barcode}/{barcode}_{reference}_DomaineRT.csv",
+        result_BCP = resultpath+"13_MUTATION_SCREENING/{barcode}/{barcode}_{reference}_BCP.csv",
+        result_DPS1 = resultpath+"13_MUTATION_SCREENING/{barcode}/{barcode}_{reference}_DomainePreS1.csv",
+        result_DPS2 = resultpath+"13_MUTATION_SCREENING/{barcode}/{barcode}_{reference}_DomainePreS2.csv",
+        result_DHBx = resultpath+"13_MUTATION_SCREENING/{barcode}/{barcode}_{reference}_DomaineHBx.csv",
+        result_C = resultpath+"13_MUTATION_SCREENING/{barcode}/{barcode}_{reference}_Core.csv",
+    conda:
+        "env/Renv.yaml"
+    shell:
+        """
+        Rscript script/search_mutation.R {input.vcf} {input.table_mut} \
+            {output.result_PC} {output.result_BCP} {output.result_DS} {output.result_RT} \
+            {output.result_DPS1} {output.result_DPS2} {output.result_DHBx} {output.result_C}
+        """
