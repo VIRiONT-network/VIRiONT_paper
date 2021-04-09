@@ -22,6 +22,12 @@ mincov_cons=config['min_cov']
 variant_frequency=config['Vfreq']
 mpileup_depth=config['max_depth']
 mpileup_basequal=config['basequality']
+mutation_research=config['HBV_mut']
+mutation_table_path=config['path_table']
+if (mutation_table_path[-1] != "/"):
+	mutation_table_path=mutation_table_path+"/"
+min_freq=config['freq_min']
+window=config['window_pos']
 
 #Check if input data are present / get all barcodes in a list after demultiplexing 
 barcode_list = glob.glob(datapath+"barcode*")
@@ -113,6 +119,22 @@ except:
 if ((variant_frequency==0) or (variant_frequency>=1)):
 	sys.exit("The Variant frequency should be set between 0 and 1. Please check the 'Vfreq' parameters. Exiting.")
 
+#Check if mutation table are present 
+if (mutation_research=="TRUE"):
+	mut_table_list = glob.glob(mutation_table_path+"mutation*.csv")
+	if (len(mut_table_list) < 1):
+		sys.exit("Mutation research enabled and no mutation table found in the indicated path. Please check the 'path_table' parameter. Exiting.")
+	try:
+		min_freq=float(min_freq)
+	except:
+		sys.exit("A numeric value is expected for the 'freq_min' parameter. Please check this parameters. Exiting.")
+	if (min_freq==0 or min_freq>100):
+		sys.exit("The 'freq_min' cutoff should be set over 0 and not exceed 100. Exiting.")
+	try:
+		window=int(window)
+	except:
+		sys.exit("A numeric value is expected for the 'window' parameter. Please check this parameters. Exiting.")
+	
 
 #NanoFilt Command construction with input parameters
 if (trim_min>0):

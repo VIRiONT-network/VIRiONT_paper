@@ -1,5 +1,6 @@
 #!usr/bin/en python3
 import os
+import re
 import glob
 import string
 import pandas as pd
@@ -25,6 +26,10 @@ mpileup_depth=config['max_depth']
 mpileup_basequal=config['basequality']
 mutation_research=config['HBV_mut']
 mutation_table_path=config['path_table']
+if (mutation_table_path[-1] != "/"):
+	mutation_table_path=mutation_table_path+"/"
+min_freq=config['freq_min']
+window=config['window_pos']
 
 #Read MI results from VIRiONT_MI1.py
 data_multiinf = resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv"
@@ -109,10 +114,10 @@ for i in range(0,assoc_sample_ref_number):
 #produce table with mutation screen
 table_mut=[]
 for i in range(0,assoc_sample_ref_number):
-	table_mut.append(resultpath +"13_MUTATION_SCREENING/"+sample_list[i]+"/"+sample_list[i]+"_"+reference_list[i]+"_PreCore.csv")
+	table_mut.append(resultpath +"13_MUTATION_SCREENING/"+sample_list[i]+"/all_results/"+sample_list[i]+"_"+reference_list[i]+"_PreCore.csv")
 
 
-if mutation_research=="ACTIVATE": 
+if mutation_research=="TRUE": 
     rule pipeline_output:
         input:
         ######## INTERMEDIATE FILES ########
@@ -524,21 +529,35 @@ rule copy_vcf_result:
 rule search_HBV_mutation:
     input:
         vcf = rules.copy_vcf_result.output.vcf,
-        table_mut = mutation_table_path + "mutation_{reference}.csv"
+        #table_mut = mutation_table_path + "mutation_{reference}.csv"
+    params:
+        table_mut = mutation_table_path 
     output:
-        result_PC = resultpath+"13_MUTATION_SCREENING/{barcode}/{barcode}_{reference}_PreCore.csv",
-        result_DS = resultpath+"13_MUTATION_SCREENING/{barcode}/{barcode}_{reference}_DomaineS.csv",
-        result_RT = resultpath+"13_MUTATION_SCREENING/{barcode}/{barcode}_{reference}_DomaineRT.csv",
-        result_BCP = resultpath+"13_MUTATION_SCREENING/{barcode}/{barcode}_{reference}_BCP.csv",
-        result_DPS1 = resultpath+"13_MUTATION_SCREENING/{barcode}/{barcode}_{reference}_DomainePreS1.csv",
-        result_DPS2 = resultpath+"13_MUTATION_SCREENING/{barcode}/{barcode}_{reference}_DomainePreS2.csv",
-        result_DHBx = resultpath+"13_MUTATION_SCREENING/{barcode}/{barcode}_{reference}_DomaineHBx.csv",
-        result_C = resultpath+"13_MUTATION_SCREENING/{barcode}/{barcode}_{reference}_Core.csv",
+        #raw
+        result_PC = resultpath+"13_MUTATION_SCREENING/{barcode}/all_results/{barcode}_{reference}_PreCore.csv",
+        result_DS = resultpath+"13_MUTATION_SCREENING/{barcode}/all_results/{barcode}_{reference}_DomaineS.csv",
+        result_RT = resultpath+"13_MUTATION_SCREENING/{barcode}/all_results/{barcode}_{reference}_DomaineRT.csv",
+        result_BCP = resultpath+"13_MUTATION_SCREENING/{barcode}/all_results/{barcode}_{reference}_BCP.csv",
+        result_DPS1 = resultpath+"13_MUTATION_SCREENING/{barcode}/all_results/{barcode}_{reference}_DomainePreS1.csv",
+        result_DPS2 = resultpath+"13_MUTATION_SCREENING/{barcode}/all_results/{barcode}_{reference}_DomainePreS2.csv",
+        result_DHBx = resultpath+"13_MUTATION_SCREENING/{barcode}/all_results/{barcode}_{reference}_DomaineHBx.csv",
+        result_C = resultpath+"13_MUTATION_SCREENING/{barcode}/all_results/{barcode}_{reference}_Core.csv",
+        #filtered
+        result_PC_F = resultpath+"13_MUTATION_SCREENING/{barcode}/filtered/{barcode}_{reference}_PreCore.csv",
+        result_DS_F = resultpath+"13_MUTATION_SCREENING/{barcode}/filtered/{barcode}_{reference}_DomaineS.csv",
+        result_RT_F = resultpath+"13_MUTATION_SCREENING/{barcode}/filtered/{barcode}_{reference}_DomaineRT.csv",
+        result_BCP_F = resultpath+"13_MUTATION_SCREENING/{barcode}/filtered/{barcode}_{reference}_BCP.csv",
+        result_DPS1_F = resultpath+"13_MUTATION_SCREENING/{barcode}/filtered/{barcode}_{reference}_DomainePreS1.csv",
+        result_DPS2_F = resultpath+"13_MUTATION_SCREENING/{barcode}/filtered/{barcode}_{reference}_DomainePreS2.csv",
+        result_DHBx_F = resultpath+"13_MUTATION_SCREENING/{barcode}/filtered/{barcode}_{reference}_DomaineHBx.csv",
+        result_C_F = resultpath+"13_MUTATION_SCREENING/{barcode}/filtered/{barcode}_{reference}_Core.csv",
     conda:
         "env/Renv.yaml"
     shell:
         """
-        Rscript script/search_mutation.R {input.vcf} {input.table_mut} \
+        Rscript script/search_mutation.R {input.vcf} {params.table_mut} {min_freq} {window} \
             {output.result_PC} {output.result_BCP} {output.result_DS} {output.result_RT} \
-            {output.result_DPS1} {output.result_DPS2} {output.result_DHBx} {output.result_C}
+            {output.result_DPS1} {output.result_DPS2} {output.result_DHBx} {output.result_C} \
+            {output.result_PC_F} {output.result_BCP_F} {output.result_DS_F} {output.result_RT_F} \
+            {output.result_DPS1_F} {output.result_DPS2_F} {output.result_DHBx_F} {output.result_C_F} 
         """
