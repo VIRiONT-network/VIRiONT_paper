@@ -53,6 +53,12 @@ The selected references are used to independently run the pipeline and produce a
 
 *note: if you're not confident with this option, it is posssible to set the **MI_cutoff** to 100 for getting only the major best-matching reference.*
 
+# Concerning the mutation research module  
+
+Currently, this step is strictly optionnal in the analysis, because data , table are specificly adapted to our work, using specific amplicon design and custom references.  
+Thus, we do not recommand using this sub-analysis even if dealing with HBV data, unless you are able to adapt table and mutation screening script to your experimental design.   
+If you are interested in this feature, results should be published soon.  
+
 # Quick using steps
 
 **Step 1 :** Get and install Anaconda herein if needed.  
@@ -116,10 +122,18 @@ All parameters are located in the ###### CONFIGURATION ####### section.
 
 **CONSENSUS PARAMETERS:**   
 **Vfreq** : minor variant frequency threshold to call the consensus sequence. You can generate consensus sequences through a simple 50% majority rule or with a lower minor variant frequency to get degenerated bases.
-**mincov** : minimum coverage expected to generate consensus sequence. N is called if the depth at the position is below this threshold. Of note, a minium depth of 20x is recommended by the Nanopore community.
+**mincov** : minimum coverage expected to generate consensus sequence. N is called if the depth at the position is below this threshold. Of note, a minium depth of 20x is recommended by the Nanopore community.  
 
 **MULTI-INFECTION PARAMETER:**  
 **MI_cutoff** : Percentage cutoff for detecting a multiple infection case. See more above in the **Multiple Infection case** section.  
+
+**HBV MUTATION RESEARCH:**  
+Optionnal part.
+**HBV_mut** : set this paramater to "TRUE" will initiate optionnal mutation research for specitif HBV dataset . the "" are mandatory!  
+**path_table** : location of the mutation table.  
+**freq_min** : variant frequency under the threshold will be removed from filtered table. Should be between 0 and 100.  
+**window_pos** : If using reference without primers, correct position in the mutation table. Could be Positive or negative.  
+
 
 # Pipeline ouputs
 
@@ -140,4 +154,5 @@ All VIRiONT pipeline outputs are stored in the choosen path (see above) indicate
 **10_QC_ANALYSIS** : a folder, containing useful read metrics after the different steps of filtering.
 **11_PHYLOGENETIC_TREE** : a folder, containing phylogenetic tree of consensus sequences with associated matched reference sequences.  
 **12_COVERAGE** : a folder, containing coverage table from each bam file generated using bedtools as well as coverage plots for each sample compiled into one pdf file.  
+**13_MUTATION_SCREENING** : Optionnal, this folder contain table with mutation of interest for each sample.   
 
