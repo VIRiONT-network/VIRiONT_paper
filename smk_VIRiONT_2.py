@@ -1,28 +1,45 @@
 #!usr/bin/en python3
 import os
+import re
 import glob
 import string
 import pandas as pd
 
-configfile : "config/config.yaml"
+configfile : "config/params.yaml"
 
-datapath=config['PathToData']
+datapath=config['data_loc']
 if (datapath[-1] != "/"):
 	datapath=datapath+"/"
-resultpath=config['PathToResult']
+resultpath=config['result_loc']
 if (resultpath[-1] != "/"):
 	resultpath=resultpath+"/"
-refpath=config['PathToReference']
-variant_frequency=config['variantfrequency']
-mincov_cons=config['mincov']
-trim_min=config['Lmin']
-trim_max=config['Lmax']
-quality_read=config['quality']
-trim_head=config['headcrop']
-trim_tail=config['tailcrop']
-MI_cutoff=config['multiinf']
-mpileup_depth=config['depth']
+refpath=config['ref_loc']
+trim_min=config['min_length']
+trim_max=config['max_length']
+trim_head=config['head_trim']
+trim_tail=config['tail_trim']
+quality_read=config['min_qual_ONT']
+MI_cutoff=config['MI_cutoff']
+mincov_cons=config['min_cov']
+variant_frequency=config['Vfreq']
+mpileup_depth=config['max_depth']
 mpileup_basequal=config['basequality']
+mutation_research=config['HBV_mut']
+mutation_table_path=config['path_table']
+if (mutation_table_path[-1] != "/"):
+	mutation_table_path=mutation_table_path+"/"
+min_freq=config['freq_min']
+window=config['window_pos']
+
+#Read MI results from VIRiONT_MI1.py
+data_multiinf = resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv"
+try:
+    multiinf_table = pd.read_csv(resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv",sep="\t",names=["barcode", "reference", "ratio"])
+except:
+    sys.exit("The '04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv' file produced during the blast step is missing. Exiting.")
+sample_list=list(multiinf_table['barcode'])
+reference_list=list(multiinf_table['reference'])
+assoc_sample_ref_number=len(sample_list)
 
 
 #get database name
@@ -37,13 +54,6 @@ BARCODE=[]
 for BC in barcode_list:
 	barcode=str(os.path.basename(BC))
 	BARCODE.append(barcode)
-
-#Read MI results from VIRiONT_MI1.py
-data_multiinf = resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv"
-multiinf_table = pd.read_csv(resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv",sep="\t",names=["barcode", "reference", "ratio"])
-sample_list=list(multiinf_table['barcode'])
-reference_list=list(multiinf_table['reference'])
-assoc_sample_ref_number=len(sample_list)
 
 #produce read list
 readlist=[]
@@ -96,9 +106,20 @@ filtseqfilecount=[]
 for i in range(0,assoc_sample_ref_number):
 	filtseqfilecount.append(resultpath +"10_QC_ANALYSIS/"+sample_list[i]+"/"+reference_list[i]+"_filterseqcount.csv")
 
+#produce vcf files on preconsensus
+vcf_mut=[]
+for i in range(0,assoc_sample_ref_number):
+	vcf_mut.append(resultpath +"13_MUTATION_SCREENING/"+sample_list[i]+"/"+reference_list[i]+"_sammpileup.vcf_variants.txt")
 
-rule pipeline_output:
-    input:
+#produce table with mutation screen
+table_mut=[]
+for i in range(0,assoc_sample_ref_number):
+	table_mut.append(resultpath +"13_MUTATION_SCREENING/"+sample_list[i]+"/all_results/"+sample_list[i]+"_"+reference_list[i]+"_PreCore.csv")
+
+
+if mutation_research=="TRUE": 
+    rule pipeline_output:
+        input:
         ######## INTERMEDIATE FILES ########
         #readlist,
         #fastq_filtered,
@@ -106,19 +127,47 @@ rule pipeline_output:
         #filtseqfile,
         #vcffile,
         #consfile,
+        ######## MUTATION ########
+            #vcf_mut,
+            table_mut,
+        #vcf_mut,
         ######## COVERAGE ANALYSIS ########  
         #covfile,
-        cov_plot = resultpath+"12_COVERAGE/cov_plot.pdf",
+            cov_plot = resultpath+"12_COVERAGE/cov_plot.pdf",
         ######## CONSENSUS FILES ########       
-        cons_seq = resultpath+"09_CONSENSUS/all_cons.fasta",
+            cons_seq = resultpath+"09_CONSENSUS/all_cons.fasta",
         ######## QC METRIC FILES ########  
-        full_summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_table.csv",
+            full_summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_table.csv",
         ######## QC PHYLOGENETIC TREE FILES ########  
         #allseq = resultpath+"11_PHYLOGENETIC_TREE/allseq.fasta",
         #align_seq = resultpath+"11_PHYLOGENETIC_TREE/align_seq.fasta",
         #NWK_tree = resultpath+"11_PHYLOGENETIC_TREE/IQtree_analysis.treefile",
-        tree_pdf = resultpath+"11_PHYLOGENETIC_TREE/RADIAL_tree.pdf",
-        report = resultpath+"param_file.txt"
+            tree_pdf = resultpath+"11_PHYLOGENETIC_TREE/RADIAL_tree.pdf",
+            report = resultpath+"param_file.txt",
+else:
+    rule pipeline_output:
+        input:
+        ######## INTERMEDIATE FILES ########
+        #readlist,
+        #fastq_filtered,
+        #bamfile,
+        #filtseqfile,
+        #vcffile,
+        #consfile,
+        #vcf_mut,
+        ######## COVERAGE ANALYSIS ########  
+        #covfile,
+            cov_plot = resultpath+"12_COVERAGE/cov_plot.pdf",
+        ######## CONSENSUS FILES ########       
+            cons_seq = resultpath+"09_CONSENSUS/all_cons.fasta",
+        ######## QC METRIC FILES ########  
+            full_summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_table.csv",
+        ######## QC PHYLOGENETIC TREE FILES ########  
+        #allseq = resultpath+"11_PHYLOGENETIC_TREE/allseq.fasta",
+        #align_seq = resultpath+"11_PHYLOGENETIC_TREE/align_seq.fasta",
+        #NWK_tree = resultpath+"11_PHYLOGENETIC_TREE/IQtree_analysis.treefile",
+            tree_pdf = resultpath+"11_PHYLOGENETIC_TREE/RADIAL_tree.pdf",
+            report = resultpath+"param_file.txt",
 
 
 rule write_param_used:
@@ -142,12 +191,13 @@ rule write_param_used:
         textfile.write("variant calling base quality threeshold:"+str(mpileup_basequal)+"\n")
         textfile.write("multi-infection cutoff:"+str(MI_cutoff)+"\n")
         textfile.write("variant frequency:"+str(variant_frequency)+"\n")
+        textfile.write("mutation research:"+str(mutation_research)+"\n")
         textfile.close()
 
 
 rule getfastqlist:
     message:
-        "Get read headers from {wildcards.barcode}_nonhuman.fastq matching with {wildcards.reference} using R."
+        "Get read names from {wildcards.barcode} matching with {wildcards.reference} using R."
     input:
         blastn_result = resultpath+"04_BLASTN_ANALYSIS/{barcode}_blastnR.tsv"
     output:
@@ -159,7 +209,7 @@ rule getfastqlist:
 
 rule extract_matching_read:
 	message:
-		"Filtrate read from {wildcards.barcode}_nonhuman.fastq into {wildcards.barcode}/{wildcards.reference}_filtered.fastq using seqkit."
+		"Extract reads from {wildcards.barcode} matching with the '{wildcards.reference}' reference using seqkit."
 	input:
 		read_list = rules.getfastqlist.output.fastqlist,
 		nonhuman_fastq = resultpath + '03_FILTERED_TRIMMED/{barcode}_filtered_trimmed.fastq'      
@@ -174,7 +224,7 @@ rule extract_matching_read:
 
 rule filtered_fastq_alignemnt:
     message:
-        "Align {wildcards.barcode}/{wildcards.reference}_filtered.fastq on {wildcards.reference}.fasta using minimap2."
+        "Align the {wildcards.barcode}-{wildcards.reference} reads on '{wildcards.reference}' reference using minimap2."
     input:   
         merged_filtered = rules.extract_matching_read.output.merged_filtered ,
         split_ref_path = resultpath+"00_SUPDATA/REFSEQ/" ,
@@ -190,7 +240,7 @@ rule filtered_fastq_alignemnt:
 
 rule compute_coverage:
     message:
-        "Compute coverage from {wildcards.barcode}/{wildcards.reference}_sorted.bam using bedtools."
+        "Compute read coverage from {wildcards.barcode} for the '{wildcards.reference}' reference using bedtools."
     input:
         sorted_bam = rules.filtered_fastq_alignemnt.output.spliced_bam
     output:
@@ -204,7 +254,7 @@ rule compute_coverage:
 
 rule plot_coverage:
     message:
-        "Plot coverage summary using R."
+        "Plot coverage summary for all barcodes using R."
     input:
         cov = covfile
     output:
@@ -220,7 +270,7 @@ rule plot_coverage:
 
 rule variant_calling:
     message:
-        "Variant calling on {wildcards.barcode}/{wildcards.reference}_sorted.bam aligned bam using samtools."
+        "Count nucleotidic base repartition from {wildcards.barcode} aligned reads for each position of the '{wildcards.reference}' reference  using samtools."
     input:
         split_ref_path = resultpath+"00_SUPDATA/REFSEQ/"  ,
         sorted_bam = rules.filtered_fastq_alignemnt.output.spliced_bam ,
@@ -235,12 +285,13 @@ rule variant_calling:
 
 rule generate_consensus:
     message:
-        "Generate consensus sequence from /{wildcards.barcode}/{wildcards.reference}_sammpileup.vcf using perl script."
+        "Generate pre-consensus sequence for the {wildcards.barcode} based on the '{wildcards.reference}' reference."
     input:
         vcf = rules.variant_calling.output.vcf
     output:
         fasta_cons_temp = temp(resultpath+"06_PRECONSENSUS/SEQUENCES/{barcode}/{reference}_cons_temp.fasta") ,
-        fasta_cons = resultpath+"06_PRECONSENSUS/SEQUENCES/{barcode}/{reference}_cons.fasta"
+        fasta_cons = resultpath+"06_PRECONSENSUS/SEQUENCES/{barcode}/{reference}_cons.fasta",
+        vcf = resultpath+"06_PRECONSENSUS/VCF/{barcode}/{reference}_sammpileup.vcf_variants.txt"
     shell:
         """
         perl script/pathogen_varcaller_MINION.PL {input} 0.5 {output.fasta_cons_temp} {mincov_cons}
@@ -248,6 +299,8 @@ rule generate_consensus:
         """
 
 rule precons_alignemnt:
+    message:
+        "Align the '{wildcards.reference}' selected reads from the {wildcards.barcode} on the pre-consensus sequence."
     input:
         fasta_cons = rules.generate_consensus.output.fasta_cons,
         merged_filtered = rules.extract_matching_read.output.merged_filtered 
@@ -263,7 +316,7 @@ rule precons_alignemnt:
 
 rule variant_calling_precons:
     message:
-        "Variant calling on {wildcards.barcode}/{wildcards.reference}_sorted.bam aligned bam using samtools."
+        "Nucleotidic base count for the {wildcards.barcode} aligned on the pre-consensus sequence."
     input:
         fasta_cons = rules.generate_consensus.output.fasta_cons,
         consbam = rules.precons_alignemnt.output.consbam ,
@@ -278,7 +331,7 @@ rule variant_calling_precons:
 
 rule generate_finalconsensus:
     message:
-        "Generate consensus sequence from /{wildcards.barcode}/{wildcards.reference}_sammpileup.vcf using perl script."
+        "Generate the final consensus sequence for the {wildcards.barcode}."
     input:
         vcf = rules.variant_calling_precons.output.vcf
     output:
@@ -293,7 +346,7 @@ rule generate_finalconsensus:
 
 rule read_metric:
     message:
-        "Extract read sequence from  MERGED/TRIMMED/DEHOSTED {wildcards.barcode}.fastq for metric computation."
+        "Extract read sequence from  raw / dehosted / filtered {wildcards.barcode} reads for metric computation."
     input:
         raw_fastq = resultpath+"01_MERGED/{barcode}_merged.fastq"  ,
         trimmed_fastq = resultpath+"03_FILTERED_TRIMMED/{barcode}_filtered_trimmed.fastq" ,
@@ -333,7 +386,7 @@ rule read_metric:
 
 rule read_metric_MI:
     message:
-        "Extract read sequence from REFERENCE_FILTERED {wildcards.barcode}.fastq for metric computation."
+        "Extract read sequence from '{wildcards.reference}' matched reads in the {wildcards.barcode} for metric computation."
     input:
         bestmatched_fastq = rules.extract_matching_read.output.merged_filtered ,
     output:
@@ -383,6 +436,8 @@ rule compute_metric:
         """
 
 rule filterIncompleteSeq:
+    message:
+        "Filter consensus sequences containing N bases above 10%."
     input:
         allcons = expand(consfile),
     output:
@@ -460,3 +515,49 @@ rule plotTree:
         "env/ETE3.yaml"
     shell:
         "python3 script/makeTREE.py {input.NWK_data} {output.tree_pdf} "
+
+rule copy_vcf_result:
+    message:
+        "Copying vcf results into the mutation folder."
+    input:
+        vcf = rules.generate_consensus.output.vcf ,
+    output:
+        vcf = resultpath+"13_MUTATION_SCREENING/{barcode}/{reference}_sammpileup.vcf_variants.txt"
+    shell:
+        "cp {input.vcf} {output.vcf}"
+
+rule search_HBV_mutation:
+    input:
+        vcf = rules.copy_vcf_result.output.vcf,
+        #table_mut = mutation_table_path + "mutation_{reference}.csv"
+    params:
+        table_mut = mutation_table_path 
+    output:
+        #raw
+        result_PC = resultpath+"13_MUTATION_SCREENING/{barcode}/all_results/{barcode}_{reference}_PreCore.csv",
+        result_DS = resultpath+"13_MUTATION_SCREENING/{barcode}/all_results/{barcode}_{reference}_DomaineS.csv",
+        result_RT = resultpath+"13_MUTATION_SCREENING/{barcode}/all_results/{barcode}_{reference}_DomaineRT.csv",
+        result_BCP = resultpath+"13_MUTATION_SCREENING/{barcode}/all_results/{barcode}_{reference}_BCP.csv",
+        result_DPS1 = resultpath+"13_MUTATION_SCREENING/{barcode}/all_results/{barcode}_{reference}_DomainePreS1.csv",
+        result_DPS2 = resultpath+"13_MUTATION_SCREENING/{barcode}/all_results/{barcode}_{reference}_DomainePreS2.csv",
+        result_DHBx = resultpath+"13_MUTATION_SCREENING/{barcode}/all_results/{barcode}_{reference}_DomaineHBx.csv",
+        result_C = resultpath+"13_MUTATION_SCREENING/{barcode}/all_results/{barcode}_{reference}_Core.csv",
+        #filtered
+        result_PC_F = resultpath+"13_MUTATION_SCREENING/{barcode}/filtered/{barcode}_{reference}_PreCore.csv",
+        result_DS_F = resultpath+"13_MUTATION_SCREENING/{barcode}/filtered/{barcode}_{reference}_DomaineS.csv",
+        result_RT_F = resultpath+"13_MUTATION_SCREENING/{barcode}/filtered/{barcode}_{reference}_DomaineRT.csv",
+        result_BCP_F = resultpath+"13_MUTATION_SCREENING/{barcode}/filtered/{barcode}_{reference}_BCP.csv",
+        result_DPS1_F = resultpath+"13_MUTATION_SCREENING/{barcode}/filtered/{barcode}_{reference}_DomainePreS1.csv",
+        result_DPS2_F = resultpath+"13_MUTATION_SCREENING/{barcode}/filtered/{barcode}_{reference}_DomainePreS2.csv",
+        result_DHBx_F = resultpath+"13_MUTATION_SCREENING/{barcode}/filtered/{barcode}_{reference}_DomaineHBx.csv",
+        result_C_F = resultpath+"13_MUTATION_SCREENING/{barcode}/filtered/{barcode}_{reference}_Core.csv",
+    conda:
+        "env/Renv.yaml"
+    shell:
+        """
+        Rscript script/search_mutation.R {input.vcf} {params.table_mut} {min_freq} {window} \
+            {output.result_PC} {output.result_BCP} {output.result_DS} {output.result_RT} \
+            {output.result_DPS1} {output.result_DPS2} {output.result_DHBx} {output.result_C} \
+            {output.result_PC_F} {output.result_BCP_F} {output.result_DS_F} {output.result_RT_F} \
+            {output.result_DPS1_F} {output.result_DPS2_F} {output.result_DHBx_F} {output.result_C_F} 
+        """

@@ -3,22 +3,138 @@ import os
 import glob
 import pandas as pd
 
-configfile : "config/config.yaml"
+configfile : "config/params.yaml"
 
-datapath=config['PathToData']
+datapath=config['data_loc']
 if (datapath[-1] != "/"):
 	datapath=datapath+"/"
-resultpath=config['PathToResult']
+resultpath=config['result_loc']
 if (resultpath[-1] != "/"):
 	resultpath=resultpath+"/"
-refpath=config['PathToReference']
-trim_min=config['Lmin']
-trim_max=config['Lmax']
-trim_head=config['headcrop']
-trim_tail=config['tailcrop']
-quality_read=config['quality']
-MI_cutoff=config['multiinf']
+refpath=config['ref_loc']
+trim_min=config['min_length']
+trim_max=config['max_length']
+trim_head=config['head_trim']
+trim_tail=config['tail_trim']
+quality_read=config['min_qual_ONT']
+MI_cutoff=config['MI_cutoff']
+mincov_cons=config['min_cov']
+variant_frequency=config['Vfreq']
+mpileup_depth=config['max_depth']
+mpileup_basequal=config['basequality']
+mutation_research=config['HBV_mut']
+mutation_table_path=config['path_table']
+if (mutation_table_path[-1] != "/"):
+	mutation_table_path=mutation_table_path+"/"
+min_freq=config['freq_min']
+window=config['window_pos']
 
+#Check if input data are present / get all barcodes in a list after demultiplexing 
+barcode_list = glob.glob(datapath+"barcode*")
+if (len(barcode_list) < 1):
+	sys.exit("No barcode repositories found in the indicated path. Please check the 'data_loc' parameter. Exiting.")
+else:
+	BARCODE=[]
+	for BC in barcode_list:
+		barcode=str(os.path.basename(BC))
+		BARCODE.append(barcode)
+
+#Check reference fasta file sanity / get database name
+def read_fasta(file):   
+    fastas={}
+    fasta_file=open(file,"r")
+    for line in fasta_file:
+        if (line[0]=='>'):
+            header=line
+            fastas[header]=''
+        else:
+            fastas[header]+=line
+    fasta_file.close()
+    return fastas
+try:
+	ref_list=read_fasta(refpath) 
+except:
+	sys.exit("No fasta reference file found in the indicated path. Please check the 'ref_loc' parameter. Exiting.")
+if (len(ref_list) < 1):
+	sys.exit("No fasta sequence can be detected in the indicated 'ref_loc' file. Please check your format file. Exiting.")
+else:
+	filename=os.path.basename(refpath)
+	list_split=filename.split(".")
+	database_name=list_split[0]
+
+#Check parameter sanity
+#trim_min
+try:
+	trim_min=int(trim_min)
+except:
+	sys.exit("A numeric value is expected for the 'min_length' parameter. Please check this parameter. Exiting.")
+#trim_max
+try:
+	trim_max=int(trim_max)
+except:
+	sys.exit("A numeric value is expected for the 'max_length' parameter. Please check this parameters. Exiting.")
+#trim_head
+try:
+	trim_head=int(trim_head)
+except:
+	sys.exit("A numeric value is expected for the 'head_trim' parameter. Please check this parameters. Exiting.")
+#trim_tail
+try:
+	trim_tail=int(trim_tail)
+except:
+	sys.exit("A numeric value is expected for the 'tail_trim' parameter. Please check this parameters. Exiting.")
+#quality_read
+try:
+	quality_read=int(quality_read)
+except:
+	sys.exit("A numeric value is expected for the 'min_qual_ONT' parameter. Please check this parameters. Exiting.")
+#MI_cutoff
+try:
+	MI_cutoff=float(MI_cutoff)
+except:
+	sys.exit("A numeric value is expected for the 'MI_cutoff' parameter. Please check this parameters. Exiting.")
+if (MI_cutoff==0 or MI_cutoff>100):
+	sys.exit("The Multi Infection cutoff should be set over 0 and not exceed 100. Exiting.")
+
+#mpileup_depth
+try:
+	mpileup_depth=int(mpileup_depth)
+except:
+	sys.exit("A numeric value is expected for the 'max_depth' parameter. Please check this parameters. Exiting.")
+#mpileup_basequal
+try:
+	mpileup_basequal=int(mpileup_basequal)
+except:
+	sys.exit("A numeric value is expected for the 'basequality' parameter. Please check this parameters. Exiting.")
+#mincov_cons
+try:
+	mincov_cons=int(mincov_cons)
+except:
+	sys.exit("A numeric value is expected for the 'min_cov' parameter. Please check this parameters. Exiting.")
+#variant_frequency
+try:
+	variant_frequency=float(variant_frequency)
+except:
+	sys.exit("A numeric value is expected for the 'Vfreq' parameter. Please check this parameters. Exiting.")
+if ((variant_frequency==0) or (variant_frequency>=1)):
+	sys.exit("The Variant frequency should be set between 0 and 1. Please check the 'Vfreq' parameters. Exiting.")
+
+#Check if mutation table are present 
+if (mutation_research=="TRUE"):
+	mut_table_list = glob.glob(mutation_table_path+"mutation*.csv")
+	if (len(mut_table_list) < 1):
+		sys.exit("Mutation research enabled and no mutation table found in the indicated path. Please check the 'path_table' parameter. Exiting.")
+	try:
+		min_freq=float(min_freq)
+	except:
+		sys.exit("A numeric value is expected for the 'freq_min' parameter. Please check this parameters. Exiting.")
+	if (min_freq==0 or min_freq>100):
+		sys.exit("The 'freq_min' cutoff should be set over 0 and not exceed 100. Exiting.")
+	try:
+		window=int(window)
+	except:
+		sys.exit("A numeric value is expected for the 'window' parameter. Please check this parameters. Exiting.")
+	
 
 #NanoFilt Command construction with input parameters
 if (trim_min>0):
@@ -43,19 +159,6 @@ else:
 	qfiltering=""
 
 
-#get database name
-filename=os.path.basename(refpath)
-list_split=filename.split(".")
-database_name=list_split[0]
-
-
-#get all barcodes in a list after demultiplexing
-barcode_list = glob.glob(datapath+"barcode*")
-BARCODE=[]
-for BC in barcode_list:
-	barcode=str(os.path.basename(BC))
-	BARCODE.append(barcode)
-
 #final output
 rule pipeline_ending:
 	input:
@@ -75,7 +178,7 @@ rule pipeline_ending:
 
 rule merging_fastq:
 	message:
-		"Merging fastq/fastq.gz files from /datapath/{wildcards.barcode}/ to the /outputpath/01_MERGED/ folder."
+		"Merging the fastq/fastq.gz files from the {wildcards.barcode}/ folder."
 	input: 
 		barcode_rep = datapath+"{barcode}/",
 	output: 
@@ -94,7 +197,7 @@ rule merging_fastq:
 
 rule get_hg19:
 	message:
-		"download if necessary the hg19 reference genome. Executed once per VIRiONT installation."
+		"Download if necessary the hg19 reference genome. Stored in the VIRiONT/ref/ folder. Executed once per VIRiONT installation."
 	output:
 		hg19_ref =  "ref/hg19.fa"
 	shell:
@@ -117,7 +220,7 @@ rule index_hg19:
 
 rule hg19_dehosting:
 	message:
-		"Aligning /outputpath/01_MERGED/{wildcards.barcode}_merged.fastq on human genome for identifying host reads using minimap2."
+		"Aligning reads from {wildcards.barcode} fastq on human genome for identifying host reads using minimap2."
 	input:
 		merged_fastq = rules.merging_fastq.output.merged_fastq ,
 		ref_file= rules.index_hg19.output.hg19_index
@@ -133,7 +236,7 @@ rule hg19_dehosting:
 
 rule nonhuman_read_extract:
 	message:
-		"Extract unaligned reads from {wildcards.barcode}_human.bam using samtools."
+		"Extract unaligned reads from {wildcards.barcode} using samtools."
 	input:
 		human_bam = rules.hg19_dehosting.output.human_bam
 	output:
@@ -145,7 +248,7 @@ rule nonhuman_read_extract:
 
 rule converting_bam_fastq:
 	message:
-		"Convert {wildcards.barcode}_nonhuman.bam to {wildcards.barcode}_nonhuman.fastq using bedtools."
+		"Convert the {wildcards.barcode} bam into fastq containing only viral reads using bedtools."
 	input:
 		nonhuman_bam = rules.nonhuman_read_extract.output.nonhuman_bam 
 	output:
@@ -159,7 +262,7 @@ rule converting_bam_fastq:
 
 rule trimming_fastq:
 	message:
-		"Filtering and trimming {wildcards.barcode}_meta.fastq using NanoFilt with input parameters."
+		"Filtering and trimming viral reads from {wildcards.barcode} using NanoFilt with input parameters."
 	input:
 		meta_fastq = rules.converting_bam_fastq.output.nonhuman_fastq
 	output:
@@ -171,7 +274,7 @@ rule trimming_fastq:
 
 rule converting_fastq_fasta:
 	message:
-		"Converting {wildcards.barcode}_meta.fastq into {wildcards.barcode}.fasta for blastn research using seqtk."
+		"Converting the {wildcards.barcode} reads into fasta sequences for blastn research using seqtk."
 	input:
 		nonhuman_fastq = rules.trimming_fastq.output.trimmed_fastq
 	output:
@@ -197,7 +300,7 @@ rule split_reference:
 
 rule make_db:
 	message:
-		"Build blast database from input reference using makeblastdb."
+		"Build blast database from input reference {refpath} using makeblastdb."
 	input:
 		ref_fasta_file = refpath 
 	output:
@@ -213,7 +316,7 @@ rule make_db:
 
 rule blastn_ref:
 	message:
-		"Blasting {wildcards.barcode}.fasta on the custom database."
+		"Blasting {wildcards.barcode} reads on the custom database."
 	input: 
 		fasta_file = rules.converting_fastq_fasta.output.converted_fastq,
 		database = rules.make_db.output.database ,
@@ -232,6 +335,8 @@ rule blastn_ref:
 		"""   
 
 rule count_refmatching:
+	message:
+		"Count matching reads for each references in the {wildcards.barcode}."
 	input:
 		R_data = rules.blastn_ref.output.R_data ,
 		ref_table = rules.split_reference.output.ref_rep,
@@ -250,6 +355,8 @@ rule count_refmatching:
 		"""  
 
 rule MI_analysis:
+	message:
+		"Summarize matched references for each barcode into the '04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv' file, mandatory for the following."
 	input:
 		count_ref_data = expand(rules.count_refmatching.output.ref_count,barcode=BARCODE)
 	output:
