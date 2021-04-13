@@ -129,7 +129,7 @@ All parameters are located in the ###### CONFIGURATION ####### section.
 **MI_cutoff** : Percentage cutoff for detecting a multiple infection case. See more above in the **Multiple Infection case** section.  
 
 **HBV MUTATION RESEARCH:**  
-Optionnal part.
+Optionnal part.  
 **HBV_mut** : set this paramater to "TRUE" will initiate optionnal mutation research for specitif HBV dataset . the "" are mandatory!  
 **path_table** : location of the mutation table.  
 **freq_min** : variant frequency under the threshold will be removed from filtered table. Should be between 0 and 100.  
