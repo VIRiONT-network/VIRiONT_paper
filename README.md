@@ -104,7 +104,7 @@ Herein is a general overview of the tunable parameters to set before launching a
 All parameters are located in the ###### CONFIGURATION ####### section.  
 
 **GENERAL PARAMETERS:**  
-**data_loc** : path where fastq data are stored. Be sure this path leads on all barcode folders you want to analyze. Currently, only fastq repositories marked as "barcode*" are interpreted as repository data. If needed, rename your rep as "barcode*". "barcode12" as an example.
+**data_loc** : path where fastq data are stored. Be sure this path leads on all barcode folders you want to analyze. Currently, only fastq repositories marked as "barcode*" are interpreted as repository data. If needed, rename your rep as "barcode*". "barcode12" as an example.  
 **result_loc** : path leading to the output folders produced by the analysis. NB: the pipeline will recursively create the path, so a previous mkdir is unnecessary.  
 **ref_loc** : path to the custom reference sequence dataset fasta file used by the pipeline especially for the blastn analysis. If you need to create a new one, check examples in *ref/* folder.  
 **thread_number** : define number of threads to be used for the analysis.  
@@ -113,16 +113,17 @@ All parameters are located in the ###### CONFIGURATION ####### section.
 **TRIMMING/FILTERING PARAMETERS:**  
 **min_length** : minimal read lenght required for passing the filtering step.  
 **max_length** : maximal read lenght required for passing the filtering step.  
+**min_qual_ONT** : minimal read quality for passing the filtering step. Based on the ONT quality score.  
 **head_trim** : number of nucleotides to be trimmed at the 5'end (forward primer removal).  
 **tail_trim** : number of nucleotides to be trimmed at the 3'end (reverse primer removal).  
 
-**VARIANT CALLING PARAMETERS:**
+**VARIANT CALLING PARAMETERS:**  
 **max_depth** : maximum depth for samtools mpileup (sub-sampling of the total amount of reads is possible for a faster analysis).  
 **basequality** : base quality cutoff for samtools mpileup (default parameter of samtools mpileup is set up at 13).  
 
 **CONSENSUS PARAMETERS:**   
-**Vfreq** : minor variant frequency threshold to call the consensus sequence. You can generate consensus sequences through a simple 50% majority rule or with a lower minor variant frequency to get degenerated bases.
-**mincov** : minimum coverage expected to generate consensus sequence. N is called if the depth at the position is below this threshold. Of note, a minium depth of 20x is recommended by the Nanopore community.  
+**Vfreq** : minor variant frequency threshold to call the consensus sequence. You can generate consensus sequences through a simple 50% majority rule or with a lower minor variant frequency to get degenerated bases.  
+**min_cov** : minimum coverage expected to generate consensus sequence. N is called if the depth at the position is below this threshold. Of note, a minium depth of 20x is recommended by the Nanopore community.
 
 **MULTI-INFECTION PARAMETER:**  
 **MI_cutoff** : Percentage cutoff for detecting a multiple infection case. See more above in the **Multiple Infection case** section.  
