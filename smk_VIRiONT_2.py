@@ -31,6 +31,13 @@ if (mutation_table_path[-1] != "/"):
 min_freq=config['freq_min']
 window=config['window_pos']
 
+#CANU
+max_threads=int(config['thread_number'])
+max_mem=int(config['mem_cost'])
+do_correction=config['correction']
+coverage_correction=int(config['cov_correction'])
+error_rate=config['error_rate']
+
 #Read MI results from VIRiONT_MI1.py
 data_multiinf = resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv"
 try:
@@ -47,7 +54,6 @@ filename=os.path.basename(refpath)
 list_split=filename.split(".")
 database_name=list_split[0]
 
-
 #get all barcodes in a list after demultiplexing
 barcode_list = glob.glob(datapath+"barcode*")
 BARCODE=[]
@@ -55,122 +61,104 @@ for BC in barcode_list:
 	barcode=str(os.path.basename(BC))
 	BARCODE.append(barcode)
 
+######## INTERMEDIATE FILES ########
 #produce read list
 readlist=[]
 for i in range(0,assoc_sample_ref_number):
 	readlist.append(resultpath +"READLIST/"+sample_list[i]+"/"+reference_list[i]+"_readlist.txt")
-
 #produce filtered fastq
 fastq_filtered=[]
 for i in range(0,assoc_sample_ref_number):
 	fastq_filtered.append(resultpath +"05_REFILTERED_FASTQ/"+sample_list[i]+"/"+reference_list[i]+"_filtered.fastq")
-
+######## CORRECTION ########
+#produce corrected fastq if enabled
+corrected_fastq=[]
+for i in range(0,assoc_sample_ref_number):
+	corrected_fastq.append(resultpath +"05_REFILTERED_FASTQ/"+sample_list[i]+"/"+reference_list[i]+"_filtered_corrected.fastq.gz")
+######## PRECONSENSUS FILES ########
 #produce bam
-bamfile=[]
+bamfile_precons=[]
 for i in range(0,assoc_sample_ref_number):
-	bamfile.append(resultpath +"06_PRECONSENSUS/BAM/"+sample_list[i]+"/"+reference_list[i]+"_sorted.bam")
-
-#produce cov files
-covfile=[]
-for i in range(0,assoc_sample_ref_number):
-	covfile.append(resultpath +"12_COVERAGE/"+sample_list[i]+"/"+reference_list[i]+".cov")
-
+	bamfile_precons.append(resultpath +"06_PRECONSENSUS/BAM/"+sample_list[i]+"/"+reference_list[i]+"_sorted.bam")
 #produce vcf files
-vcffile=[]
+vcffile_precons=[]
 for i in range(0,assoc_sample_ref_number):
-	vcffile.append(resultpath +"06_PRECONSENSUS/VCF/"+sample_list[i]+"/"+reference_list[i]+"_sammpileup.vcf")
-
+	vcffile_precons.append(resultpath +"06_PRECONSENSUS/VCF/"+sample_list[i]+"/"+reference_list[i]+"_sammpileup.vcf")
 #produce consensus files
 consfile=[]
 for i in range(0,assoc_sample_ref_number):
 	consfile.append(resultpath +"06_PRECONSENSUS/SEQUENCES/"+sample_list[i]+"/"+reference_list[i]+"_cons.fasta")
-
+######## FINAL CONSENSUS FILES ########
 #produce bam aligned on preconsensus
 bamfile=[]
 for i in range(0,assoc_sample_ref_number):
 	bamfile.append(resultpath +"07_BAM/"+sample_list[i]+"/"+reference_list[i]+"_sorted.bam")
-
 #produce vcf files on preconsensus
 vcffile=[]
 for i in range(0,assoc_sample_ref_number):
 	vcffile.append(resultpath +"08_VCF/"+sample_list[i]+"/"+reference_list[i]+"_sammpileup.vcf")
-
-#produce consensus files
-consfile=[]
+#produce final consensus files
+consfile_final=[]
 for i in range(0,assoc_sample_ref_number):
-	consfile.append(resultpath +"09_CONSENSUS/"+sample_list[i]+"/"+reference_list[i]+"_cons.fasta")
-
-
+	consfile_final.append(resultpath +"09_CONSENSUS/"+sample_list[i]+"/"+reference_list[i]+"_cons.fasta")
+######## MUTATION HBV ########
+#copy vcf result from reference alignment for mutation screening
+vcf_mut=[]
+for i in range(0,assoc_sample_ref_number):
+	vcf_mut.append(resultpath +"13_MUTATION_SCREENING/"+sample_list[i]+"/"+reference_list[i]+"_sammpileup.vcf_variants.txt")
+#produce table with mutation screening if enabled
+table_mut=[]
+if (mutation_research==True):
+    for i in range(0,assoc_sample_ref_number):
+	    table_mut.append(resultpath +"13_MUTATION_SCREENING/"+sample_list[i]+"/all_results/"+sample_list[i]+"_"+reference_list[i]+"_PreCore.csv")
+######## COVERAGE ANALYSIS ######## 
+#produce cov files
+covfile=[]
+for i in range(0,assoc_sample_ref_number):
+	covfile.append(resultpath +"12_COVERAGE/"+sample_list[i]+"/"+reference_list[i]+".cov")
+######## QC METRIC FILES ########
 #produce filterseq files
 filtseqfilecount=[]
 for i in range(0,assoc_sample_ref_number):
 	filtseqfilecount.append(resultpath +"10_QC_ANALYSIS/"+sample_list[i]+"/"+reference_list[i]+"_filterseqcount.csv")
 
-#produce vcf files on preconsensus
-vcf_mut=[]
-for i in range(0,assoc_sample_ref_number):
-	vcf_mut.append(resultpath +"13_MUTATION_SCREENING/"+sample_list[i]+"/"+reference_list[i]+"_sammpileup.vcf_variants.txt")
 
-#produce table with mutation screen
-table_mut=[]
-for i in range(0,assoc_sample_ref_number):
-	table_mut.append(resultpath +"13_MUTATION_SCREENING/"+sample_list[i]+"/all_results/"+sample_list[i]+"_"+reference_list[i]+"_PreCore.csv")
-
-
-if mutation_research=="TRUE": 
-    rule pipeline_output:
-        input:
+rule pipeline_output:
+    input:
         ######## INTERMEDIATE FILES ########
         #readlist,
-        #fastq_filtered,
-        #bamfile,
         #filtseqfile,
+        #fastq_filtered,
+        ######## CORRECTION ########
+        #corrected_fastq,
+        ######## PRECONSENSUS FILES ########
+        #bamfile_precons, 
+        #vcffile_precons,
+        #consfile_precons,
+        ######## FINAL CONSENSUS FILES ########  
+        #bamfile,
         #vcffile,
-        #consfile,
-        ######## MUTATION ########
-            #vcf_mut,
-            table_mut,
+        #consfile,    
+        #cons_seq = resultpath+"09_CONSENSUS/all_cons.fasta",
+        ######## MUTATION HBV ########
         #vcf_mut,
+        table_mut,
         ######## COVERAGE ANALYSIS ########  
         #covfile,
-            cov_plot = resultpath+"12_COVERAGE/cov_plot.pdf",
-        ######## CONSENSUS FILES ########       
-            cons_seq = resultpath+"09_CONSENSUS/all_cons.fasta",
-        ######## QC METRIC FILES ########  
-            full_summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_table.csv",
+        cov_plot = resultpath+"12_COVERAGE/cov_plot.pdf",
         ######## QC PHYLOGENETIC TREE FILES ########  
         #allseq = resultpath+"11_PHYLOGENETIC_TREE/allseq.fasta",
         #align_seq = resultpath+"11_PHYLOGENETIC_TREE/align_seq.fasta",
         #NWK_tree = resultpath+"11_PHYLOGENETIC_TREE/IQtree_analysis.treefile",
-            tree_pdf = resultpath+"11_PHYLOGENETIC_TREE/RADIAL_tree.pdf",
-            report = resultpath+"param_file.txt",
-else:
-    rule pipeline_output:
-        input:
-        ######## INTERMEDIATE FILES ########
-        #readlist,
-        #fastq_filtered,
-        #bamfile,
-        #filtseqfile,
-        #vcffile,
-        #consfile,
-        #vcf_mut,
-        ######## COVERAGE ANALYSIS ########  
-        #covfile,
-            cov_plot = resultpath+"12_COVERAGE/cov_plot.pdf",
-        ######## CONSENSUS FILES ########       
-            cons_seq = resultpath+"09_CONSENSUS/all_cons.fasta",
+        tree_pdf = resultpath+"11_PHYLOGENETIC_TREE/RADIAL_tree.pdf",
         ######## QC METRIC FILES ########  
-            full_summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_table.csv",
-        ######## QC PHYLOGENETIC TREE FILES ########  
-        #allseq = resultpath+"11_PHYLOGENETIC_TREE/allseq.fasta",
-        #align_seq = resultpath+"11_PHYLOGENETIC_TREE/align_seq.fasta",
-        #NWK_tree = resultpath+"11_PHYLOGENETIC_TREE/IQtree_analysis.treefile",
-            tree_pdf = resultpath+"11_PHYLOGENETIC_TREE/RADIAL_tree.pdf",
-            report = resultpath+"param_file.txt",
+        #full_summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_table.csv",
+        report = resultpath+"param_file.txt",
 
-
+######## RULES ########
 rule write_param_used:
+    message:
+        "write an analysis report with all used parameters."
     output:
         report= resultpath+"param_file.txt"
     run:
@@ -192,8 +180,12 @@ rule write_param_used:
         textfile.write("multi-infection cutoff:"+str(MI_cutoff)+"\n")
         textfile.write("variant frequency:"+str(variant_frequency)+"\n")
         textfile.write("mutation research:"+str(mutation_research)+"\n")
+        textfile.write("read correction enabled:"+str(do_correction)+"\n")
+        textfile.write("maximum of threads usable for CANU:"+str(max_threads)+"\n")
+        textfile.write("maximum of memory usable for CANU:"+str(max_mem)+"\n")
+        textfile.write("coverage correction:"+str(coverage_correction)+"\n")
+        textfile.write("corrected error rate for CANU:"+str(error_rate)+"\n")
         textfile.close()
-
 
 rule getfastqlist:
     message:
@@ -222,11 +214,45 @@ rule extract_matching_read:
 		seqkit grep --pattern-file {input.read_list} {input.nonhuman_fastq} > {output}
 		"""   
 
+rule read_correction:
+    message:
+        "correct the {wildcards.barcode}-{wildcards.reference} reads for the ONT error rate using CANU."
+    input:
+        merged_filtered = rules.extract_matching_read.output.merged_filtered ,
+        split_ref_path = resultpath+"00_SUPDATA/REFSEQ/" ,
+    output:
+        corrected_filtered = resultpath +"05_REFILTERED_FASTQ/{barcode}/{reference}_filtered_corrected.fastq.gz" 
+    conda:
+        "env/canu.yaml"
+    threads: 
+        max_threads
+    resources: 
+        mem_mb=max_mem
+    params:
+        correction_rep = resultpath+"00_SUPDATA/read_correction/{barcode}/{reference}/"
+    shell:
+        """
+        #compute reference size
+        size_ref=`tail -n 1 {input.split_ref_path}{wildcards.reference}.fasta | wc -c`
+        #launch CANU in correction mode only
+        canu -correct \
+            -nanopore {input.merged_filtered} \
+            -p {wildcards.reference} \
+            -d {params.correction_rep} \
+            genomeSize=${{size_ref}} \
+            maxMemory={max_mem} \
+            maxThreads={threads} \
+            correctedErrorRate={error_rate} \
+            maxInputCoverage={coverage_correction}
+        #process final modifications
+        seqtk seq -F "?" {params.correction_rep}{wildcards.reference}.correctedReads.fasta.gz > {output.corrected_filtered}
+        """
+
 rule filtered_fastq_alignemnt:
     message:
         "Align the {wildcards.barcode}-{wildcards.reference} reads on '{wildcards.reference}' reference using minimap2."
     input:   
-        merged_filtered = rules.extract_matching_read.output.merged_filtered ,
+        merged_filtered = rules.extract_matching_read.output.merged_filtered if (do_correction==False) else rules.read_correction.output.corrected_filtered ,
         split_ref_path = resultpath+"00_SUPDATA/REFSEQ/" ,
     output:
         spliced_bam = resultpath+"06_PRECONSENSUS/BAM/{barcode}/{reference}_sorted.bam" 

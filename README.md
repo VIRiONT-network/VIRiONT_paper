@@ -31,17 +31,19 @@ For each barcode, you can find herein the global workflow:
 Installation and use of the tools required by VIRiONT pipeline is fully managed by conda and snakemake.  
 Environment files and software versions are available in the *env/* folder.  
 
-*filtering and trimming* : NanoFilt v2.7.1. See => https://github.com/wdecoster/nanofilt <=  
-*dehosting and mapping* : minimap2 v2.17. See => https://github.com/lh3/minimap2 <=  
-*bam management and pileup* : samtools v1.3.1. See => http://samtools.github.io/ <=  
-*blastn analysis* : blast v2.5.0. See => https://blast.ncbi.nlm.nih.gov/Blast.cgi?PAGE_TYPE=BlastDocs&DOC_TYPE=Download <=  
-*fastq and fasta management* : seqkit v0.12.1. See => https://github.com/shenwei356/seqkit <=  
-*fastq and fasta management* : seqtk v1.3. See => https://github.com/lh3/seqtk <=   
-*coverage computation* : bedtools v2.29.2. See => https://github.com/arq5x/bedtools <=   
-*statistics and plotting* : R v4.0.3. See => https://cran.r-project.org/ <=  
-*consensus and reference sequence alignment before phylognetic tree generation* : muscle v3.8.1551. See => http://www.drive5.com/muscle <=  
-*newick tree computation* : iqtree v2.0.3. See => http://www.iqtree.org/ <=  
-*tree drawing* : ete3 v3.1.2. See => http://etetoolkit.org/ <=  
+*filtering and trimming* : NanoFilt v2.7.1. See => [NanoFilt](https://github.com/wdecoster/nanofilt) <=  
+*dehosting and mapping* : minimap2 v2.17. See => [minimap2](https://github.com/lh3/minimap2) <=  
+*bam management and pileup* : samtools v1.12. See => [samtools](http://samtools.github.io/) <=  
+*blastn analysis* : blast v2.5.0. See => [blast](https://blast.ncbi.nlm.nih.gov/Blast.cgi?PAGE_TYPE=BlastDocs&DOC_TYPE=Download) <=  
+*fastq and fasta management* : seqkit v0.12.1. See => [seqkit](https://github.com/shenwei356/seqkit) <=  
+*fastq and fasta management* : seqtk v1.3. See => [seqtk](https://github.com/lh3/seqtk) <=   
+*coverage computation* : bedtools v2.29.2. See => [bedtools](https://github.com/arq5x/bedtools) <=   
+*statistics and plotting* : R v4.0.3. See => [R](https://cran.r-project.org/) <=  
+*consensus and reference sequence alignment before phylognetic tree generation* : muscle v3.8.1551. See => [muscle](http://www.drive5.com/muscle) <=  
+*newick tree computation* : iqtree v2.0.3. See => [iqtree](http://www.iqtree.org/) <=  
+*tree drawing* : ete3 v3.1.2. See => [ete3](http://etetoolkit.org/) <=  
+*read correction* : CANU v2.1.1. See => [CANU](https://canu.readthedocs.io/en/latest/) <=  
+
 
 # Multiple Infection case
 
@@ -52,6 +54,17 @@ A reference is selected if the percent normalized count is equal or above the in
 The selected references are used to independently run the pipeline and produce as many consensus sequences as selected references for each barcode.  
 
 *note: if you're not confident with this option, it is posssible to set the **MI_cutoff** to 100 for getting only the major best-matching reference.*
+
+# Few words about CANU and read correction  
+
+The error rate associated with ONT technologies remain one of the main issues. However several long read correction methods are now available to significantly decrease the error rate. Here, we choose to use for VIRiONT the [CANU assembler](https://canu.readthedocs.io/en/latest/), which can also correct reads instead of de novo assembly.  
+If a read correction is envisaged for your data, please keep in mind these informations:  
+-Dont hesitate to visit the official documentation to learn more about CANU [https://canu.readthedocs.io/en/latest/](https://canu.readthedocs.io/en/latest/).  
+-The "maxInputCoverage" parameter is tunable with VIRiONT. This parameter subsample data if too low, and significantly increase computing time if to high. Depending on your read load and computing capacities, choose this parameter carefully.  
+-The "correctedErrorRate" parameter is also tunable with VIRiONT. Change this parameter can impact read correction and increase/decrease computing time.  
+-Read correction with VIRiONT is done after read assignation on the the major best-matching references selected.  
+-The correction step redirect all resources (threads and memory) on CANU.  
+-The corrected reads from CANU are in a fasta format output. Due to a conversion fasta=>fastq , the basequality associated information is lost during the conversion process. VIRiONT set default quality to "?" (Phred score 30 in the ASCI table). Some variant calling parameters should become useless.  
 
 # Concerning the mutation research module  
 
@@ -117,6 +130,12 @@ All parameters are located in the ###### CONFIGURATION ####### section.
 **head_trim** : number of nucleotides to be trimmed at the 5'end (forward primer removal).  
 **tail_trim** : number of nucleotides to be trimmed at the 3'end (reverse primer removal).  
 
+**READ CORRECTION**  
+If you want to correct your read, please check the CANU documentation for more information: => [documentation](https://canu.readthedocs.io/)
+**correction** : enable read correction. TRUE/FALSE to enable/disable correction.   
+**cov_correction** : average coverage for read correction. Reads above this coverage will be removed from the analysis. Corresponding to the CANU's "maxInputCoverage" parameter.  
+**error_rate** : CANU parameter for ONT read correction. Corresponding to the CANU's "correctedErrorRate" parameter.     
+
 **VARIANT CALLING PARAMETERS:**  
 **max_depth** : maximum depth for samtools mpileup (sub-sampling of the total amount of reads is possible for a faster analysis).  
 **basequality** : base quality cutoff for samtools mpileup (default parameter of samtools mpileup is set up at 13).  
@@ -130,7 +149,7 @@ All parameters are located in the ###### CONFIGURATION ####### section.
 
 **HBV MUTATION RESEARCH:**  
 Optionnal part.  
-**HBV_mut** : set this paramater to "TRUE" will initiate optionnal mutation research for specitif HBV dataset . the "" are mandatory!  
+**HBV_mut** : set this paramater to TRUE will initiate optionnal mutation research for specitif HBV dataset. FALSE to disable.     
 **path_table** : location of the mutation table.  
 **freq_min** : variant frequency under the threshold will be removed from filtered table. Should be between 0 and 100.  
 **window_pos** : If using reference without primers, correct position in the mutation table. Could be Positive or negative.  
