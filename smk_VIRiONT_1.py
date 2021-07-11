@@ -347,11 +347,17 @@ rule count_refmatching:
 		"env/Renv.yaml"     
 	shell:
 		"""
-		Rscript script/count_ref.R {input.R_data} \
-			{input.ref_table}R_table_analysis.csv \
-			{wildcards.barcode} \
-			{output.ref_count} \
-			{output.blastn_result}
+		if [ -s {input.R_data} ] 
+		then
+			Rscript script/count_ref.R {input.R_data} \
+				{input.ref_table}R_table_analysis.csv \
+				{wildcards.barcode} \
+				{output.ref_count} \
+				{output.blastn_result}
+		else
+			touch {output.ref_count}
+			echo "Empty: Any blast rseults." > {output.blastn_result}
+		fi
 		"""  
 
 rule MI_analysis:
