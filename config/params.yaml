@@ -15,9 +15,9 @@ result_loc : VIRiONT_HDV422_correction_refNoPrimers/
 #custom reference file to use /  Path to fastafile containing reference sequences for blast
 ref_loc : ref/HDV_subtype_V2_noPrimers.fasta
 #core number / Define number of threads to use for the analysis
-thread_number : 18
+thread_number : 32
 #memory cost in mb / Define number of threads to use for the analysis
-mem_cost : 350000
+mem_cost : 600000
 #################################################################################
 
 #################################################################################
@@ -41,7 +41,7 @@ tail_trim : 23
 #enable or not read correction. Can be high time/ressource consuming depending on the following parameters.
 correction : TRUE
 #average coverage of reads on the reference. /!\ This parameter significantly increase computing time if too high!
-cov_correction : 10000000
+cov_correction : 100000
 #corrected error rate for ONT. See the readme file for more information
 error_rate : 0.105
 #################################################################################

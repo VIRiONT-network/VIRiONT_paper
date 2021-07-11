@@ -32,8 +32,8 @@ min_freq=config['freq_min']
 window=config['window_pos']
 
 #CANU
-max_threads=int(config['thread_number'])
-max_mem=int(config['mem_cost'])
+max_threads=int(int(config['thread_number'])/2)
+max_mem=int(int(config['mem_cost'])/2)
 do_correction=config['correction']
 coverage_correction=int(config['cov_correction'])
 error_rate=config['error_rate']
@@ -125,6 +125,9 @@ for i in range(0,assoc_sample_ref_number):
 
 rule pipeline_output:
     input:
+        ######## MUTATION HBV ########
+        #vcf_mut,
+        table_mut,
         ######## INTERMEDIATE FILES ########
         #readlist,
         #filtseqfile,
@@ -139,10 +142,7 @@ rule pipeline_output:
         #bamfile,
         #vcffile,
         #consfile,    
-        #cons_seq = resultpath+"09_CONSENSUS/all_cons.fasta",
-        ######## MUTATION HBV ########
-        #vcf_mut,
-        table_mut,
+        cons_seq = resultpath+"09_CONSENSUS/all_cons.fasta",
         ######## COVERAGE ANALYSIS ########  
         #covfile,
         cov_plot = resultpath+"12_COVERAGE/cov_plot.pdf",
@@ -152,7 +152,7 @@ rule pipeline_output:
         #NWK_tree = resultpath+"11_PHYLOGENETIC_TREE/IQtree_analysis.treefile",
         tree_pdf = resultpath+"11_PHYLOGENETIC_TREE/RADIAL_tree.pdf",
         ######## QC METRIC FILES ########  
-        #full_summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_table.csv",
+        full_summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_table.csv",
         report = resultpath+"param_file.txt",
 
 ######## RULES ########
@@ -227,7 +227,7 @@ rule read_correction:
     threads: 
         max_threads
     resources: 
-        mem_mb=max_mem
+        mem_mb= max_mem
     params:
         correction_rep = resultpath+"00_SUPDATA/read_correction/{barcode}/{reference}/"
     shell:
@@ -414,7 +414,7 @@ rule read_metric_MI:
     message:
         "Extract read sequence from '{wildcards.reference}' matched reads in the {wildcards.barcode} for metric computation."
     input:
-        bestmatched_fastq = rules.extract_matching_read.output.merged_filtered ,
+        bestmatched_fastq = rules.extract_matching_read.output.merged_filtered if (do_correction==False) else rules.read_correction.output.corrected_filtered ,
     output:
         bestmatched_read = temp(resultpath+"10_QC_ANALYSIS/{barcode}/{reference}_filterseq.txt"),
         bestmatched_count = temp(resultpath+"10_QC_ANALYSIS/{barcode}/{reference}_filterseqcount.csv"),
@@ -465,7 +465,7 @@ rule filterIncompleteSeq:
     message:
         "Filter consensus sequences containing N bases above 10%."
     input:
-        allcons = expand(consfile),
+        allcons = expand(consfile_final),
     output:
         cons_seq = resultpath+"09_CONSENSUS/all_cons.fasta",
         filteredcons = resultpath+"11_PHYLOGENETIC_TREE/filteredcons.fasta",
