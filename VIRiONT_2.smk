@@ -69,7 +69,7 @@ for i in range(0,assoc_sample_ref_number):
 #produce filtered fastq
 fastq_filtered=[]
 for i in range(0,assoc_sample_ref_number):
-	fastq_filtered.append(resultpath +"05_REFILTERED_FASTQ/"+sample_list[i]+"/"+reference_list[i]+"_filtered.fastq")
+	fastq_filtered.append(resultpath +"05_REFILTERED_FASTQ/"+sample_list[i]+"/"+reference_list[i]+"_filtered.fastq.gz")
 ######## CORRECTION ########
 #produce corrected fastq if enabled
 corrected_fastq=[]
@@ -204,14 +204,16 @@ rule extract_matching_read:
 		"Extract reads from {wildcards.barcode} matching with the '{wildcards.reference}' reference using seqkit."
 	input:
 		read_list = rules.getfastqlist.output.fastqlist,
-		nonhuman_fastq = resultpath + '03_FILTERED_TRIMMED/{barcode}_filtered_trimmed.fastq'      
+		nonhuman_fastq = resultpath + '03_FILTERED_TRIMMED/{barcode}_filtered_trimmed.fastq.gz'      
 	output:
-		merged_filtered = resultpath +"05_REFILTERED_FASTQ/{barcode}/{reference}_filtered.fastq" 
+		merged_filtered = temp(resultpath +"05_REFILTERED_FASTQ/{barcode}/{reference}_filtered.fastq"),
+		merged_filtered_compressed = resultpath +"05_REFILTERED_FASTQ/{barcode}/{reference}_filtered.fastq.gz" 
 	conda:
 		"env/seqkit.yaml"          
 	shell:
 		"""
-		seqkit grep --pattern-file {input.read_list} {input.nonhuman_fastq} > {output}
+		seqkit grep --pattern-file {input.read_list} {input.nonhuman_fastq} > {output.merged_filtered}
+        gzip -c {output.merged_filtered} > {output.merged_filtered_compressed}
 		"""   
 
 rule read_correction:
@@ -252,7 +254,7 @@ rule filtered_fastq_alignemnt:
     message:
         "Align the {wildcards.barcode}-{wildcards.reference} reads on '{wildcards.reference}' reference using minimap2."
     input:   
-        merged_filtered = rules.extract_matching_read.output.merged_filtered if (do_correction==False) else rules.read_correction.output.corrected_filtered ,
+        merged_filtered = rules.extract_matching_read.output.merged_filtered_compressed if (do_correction==False) else rules.read_correction.output.corrected_filtered ,
         split_ref_path = resultpath+"00_SUPDATA/REFSEQ/" ,
     output:
         spliced_bam = resultpath+"06_PRECONSENSUS/BAM/{barcode}/{reference}_sorted.bam" 
@@ -329,7 +331,7 @@ rule precons_alignemnt:
         "Align the '{wildcards.reference}' selected reads from the {wildcards.barcode} on the pre-consensus sequence."
     input:
         fasta_cons = rules.generate_consensus.output.fasta_cons,
-        merged_filtered = rules.extract_matching_read.output.merged_filtered 
+        merged_filtered = rules.extract_matching_read.output.merged_filtered_compressed
     output:
         consbam = resultpath +"07_BAM/{barcode}/{reference}_sorted.bam"
     conda:
@@ -374,9 +376,9 @@ rule read_metric:
     message:
         "Extract read sequence from  raw / dehosted / filtered {wildcards.barcode} reads for metric computation."
     input:
-        raw_fastq = resultpath+"01_MERGED/{barcode}_merged.fastq"  ,
-        trimmed_fastq = resultpath+"03_FILTERED_TRIMMED/{barcode}_filtered_trimmed.fastq" ,
-        dehosted_fastq = resultpath + '02_DEHOSTING/{barcode}_meta.fastq' ,
+        raw_fastq = resultpath+"01_MERGED/{barcode}_merged.fastq.gz"  ,
+        trimmed_fastq = resultpath+"03_FILTERED_TRIMMED/{barcode}_filtered_trimmed.fastq.gz" ,
+        dehosted_fastq = resultpath + '02_DEHOSTING/{barcode}_meta.fastq.gz' ,
     output:
         raw_read = temp(resultpath+"10_QC_ANALYSIS/{barcode}_rawseq.txt"),
         trimmed_read = temp(resultpath+"10_QC_ANALYSIS/{barcode}_trimmseq.txt"),
@@ -385,9 +387,9 @@ rule read_metric:
         trimm_count = temp(resultpath+"10_QC_ANALYSIS/{barcode}_trimmcount.csv"),
         dehost_count = temp(resultpath+"10_QC_ANALYSIS/{barcode}_dehostcount.csv"),
     run:
-        shell("awk '(NR%4==2)' {input.raw_fastq} > {output.raw_read}")
-        shell("awk '(NR%4==2)' {input.trimmed_fastq} > {output.trimmed_read}")
-        shell("awk '(NR%4==2)' {input.dehosted_fastq} > {output.dehosted_read}")
+        shell("zcat {input.raw_fastq} | awk '(NR%4==2)'  > {output.raw_read}")
+        shell("zcat {input.trimmed_fastq} | awk '(NR%4==2)'  > {output.trimmed_read}")
+        shell("zcat {input.dehosted_fastq} | awk '(NR%4==2)'  > {output.dehosted_read}")
         ######
         rawlengthfile=open(output.raw_count,'w')
         rawRfile=open(output.raw_read,'r')

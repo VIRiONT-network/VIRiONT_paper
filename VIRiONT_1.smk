@@ -182,17 +182,18 @@ rule merging_fastq:
 	input: 
 		barcode_rep = datapath+"{barcode}/",
 	output: 
-		merged_fastq = resultpath+"01_MERGED/{barcode}_merged.fastq"  
+		merged_fastq = temp(resultpath+"01_MERGED/{barcode}_merged.fastq"),
+		merged_fastq_compressed = resultpath+"01_MERGED/{barcode}_merged.fastq.gz"  
 	shell: 
 		"""
 		gz_file_num=`find {input.barcode_rep} -name "*.gz" | wc -l`
 		if [ $gz_file_num -gt 0 ]
 		then
-        	zcat {input.barcode_rep}* > {output}
+        	zcat {input.barcode_rep}* > {output.merged_fastq}
 		else
-        	cat {input.barcode_rep}* > {output}
+        	cat {input.barcode_rep}* > {output.merged_fastq}
 		fi
-		#cat {input.barcode_rep}* > {output}
+		gzip -c {output.merged_fastq} > {output.merged_fastq_compressed}
 		"""
 
 rule get_hg19:
@@ -222,7 +223,7 @@ rule hg19_dehosting:
 	message:
 		"Aligning reads from {wildcards.barcode} fastq on human genome for identifying host reads using minimap2."
 	input:
-		merged_fastq = rules.merging_fastq.output.merged_fastq ,
+		merged_fastq = rules.merging_fastq.output.merged_fastq_compressed ,
 		ref_file= rules.index_hg19.output.hg19_index
 	output:
 		human_bam = temp(resultpath+"02_DEHOSTING/{barcode}_human.bam")
@@ -252,25 +253,32 @@ rule converting_bam_fastq:
 	input:
 		nonhuman_bam = rules.nonhuman_read_extract.output.nonhuman_bam 
 	output:
-		nonhuman_fastq = resultpath + '02_DEHOSTING/{barcode}_meta.fastq',
+		nonhuman_fastq = temp(resultpath + '02_DEHOSTING/{barcode}_meta.fastq'),
+		nonhuman_fastq_compressed = resultpath + '02_DEHOSTING/{barcode}_meta.fastq.gz',
 	conda:
 		"env/bedtools.yaml"
 	shell:
 		"""
 		bedtools bamtofastq  -i {input.nonhuman_bam} -fq {output.nonhuman_fastq} 
+		gzip -c {output.nonhuman_fastq} > {output.nonhuman_fastq_compressed} 
 		"""
 
 rule trimming_fastq:
 	message:
 		"Filtering and trimming viral reads from {wildcards.barcode} using NanoFilt with input parameters."
 	input:
-		meta_fastq = rules.converting_bam_fastq.output.nonhuman_fastq
+		meta_fastq = rules.converting_bam_fastq.output.nonhuman_fastq_compressed
 	output:
-		trimmed_fastq = resultpath+"03_FILTERED_TRIMMED/{barcode}_filtered_trimmed.fastq"
+		trimmed_fastq = temp(resultpath+"03_FILTERED_TRIMMED/{barcode}_filtered_trimmed.fastq"),
+		trimmed_fastq_compressed = resultpath+"03_FILTERED_TRIMMED/{barcode}_filtered_trimmed.fastq.gz"
+
 	conda:
 		"env/nanofilt.yaml"
 	shell:
-		"NanoFilt {lengmin} {lengmax} {head} {tail} {qfiltering} {input.meta_fastq} > {output.trimmed_fastq} "
+		"""
+		gunzip -c {input.meta_fastq} | NanoFilt {lengmin} {lengmax} {head} {tail} {qfiltering}  > {output.trimmed_fastq} 
+		gzip -c {output.trimmed_fastq} > {output.trimmed_fastq_compressed} 
+		"""
 
 rule converting_fastq_fasta:
 	message:
@@ -356,7 +364,7 @@ rule count_refmatching:
 				{output.blastn_result}
 		else
 			touch {output.ref_count}
-			echo "Empty: Any blast rseults." > {output.blastn_result}
+			echo "Empty: Any blast results." > {output.blastn_result}
 		fi
 		"""  
 
