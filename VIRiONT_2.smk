@@ -331,7 +331,7 @@ rule precons_alignemnt:
         "Align the '{wildcards.reference}' selected reads from the {wildcards.barcode} on the pre-consensus sequence."
     input:
         fasta_cons = rules.generate_consensus.output.fasta_cons,
-        merged_filtered = rules.extract_matching_read.output.merged_filtered_compressed
+        merged_filtered = rules.extract_matching_read.output.merged_filtered_compressed if (do_correction==False) else rules.read_correction.output.corrected_filtered ,
     output:
         consbam = resultpath +"07_BAM/{barcode}/{reference}_sorted.bam"
     conda:
