@@ -32,12 +32,28 @@ window=config['window_pos']
 #Check if input data are present / get all barcodes in a list after demultiplexing 
 barcode_list = glob.glob(datapath+"barcode*")
 if (len(barcode_list) < 1):
-	sys.exit("No barcode repositories found in the indicated path. Please check the 'data_loc' parameter. Exiting.")
+	sys.exit("No barcode repositories found in the indicated path. Please check the 'data_loc' parameter and be sure that barcode* directories are here. Exiting.")
 else:
 	BARCODE=[]
+	IGNORED_BARCODE=[]
+	BAD_BARCODE=[]
+	list_invalid=[]
 	for BC in barcode_list:
 		barcode=str(os.path.basename(BC))
-		BARCODE.append(barcode)
+		#barcode rep empty?
+		if len(os.listdir(BC) ) == 0:
+			IGNORED_BARCODE.append(barcode)
+		else:
+			valid_BC=True
+			for file in os.listdir(BC):
+				test_file=BC+file
+				if test_file.lower().endswith(('.fastq','.gz')) == False:
+					valid_BC=False
+					list_invalid.append(test_file)
+			if valid_BC == True:
+				BARCODE.append(barcode)
+			else:
+				BAD_BARCODE.append(barcode)
 
 #Check reference fasta file sanity / get database name
 def read_fasta(file):   
@@ -175,6 +191,35 @@ rule pipeline_ending:
 		######## FINAL OUTPUTS ########		
 		#blastn_result=expand(resultpath+"04_BLASTN_ANALYSIS/{barcode}_blastnR.tsv",barcode=BARCODE),
 		summ_multiinf = resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv",
+		fastq_content = resultpath+"fastq_content.txt"
+
+rule fastq_analysis:
+	message:
+		"Describe barcode repositories content."
+	input:
+	output:
+		fastq_content = resultpath+"fastq_content.txt"
+	run:
+		textfile=open(resultpath+"fastq_content.txt","w")
+		textfile.write("##########################\n")
+		textfile.write("##### FASTQ ANALYSIS #####\n")
+		textfile.write("##########################\n")
+		textfile.write("barcode repository containing fastq/gz files and used for analysis:\n")
+		for bc in BARCODE:
+			textfile.write(bc+"\n")
+		textfile.write("##########################\n")
+		textfile.write("barcode repository containing other files than fastq/gz and ignored for analysis:\n")
+		for bc in IGNORED_BARCODE:
+			textfile.write(bc+"\n")
+		textfile.write("##########################\n")
+		textfile.write("list of problematic files:\n")
+		for file in list_invalid:
+			textfile.write(file+"\n")
+		textfile.write("##########################\n")
+		textfile.write("empty barcode repositories and ignored for analysis:\n")
+		for bc in IGNORED_BARCODE:
+			textfile.write(bc+"\n")
+		textfile.close()
 
 rule merging_fastq:
 	message:
@@ -189,9 +234,9 @@ rule merging_fastq:
 		gz_file_num=`find {input.barcode_rep} -name "*.gz" | wc -l`
 		if [ $gz_file_num -gt 0 ]
 		then
-        	zcat {input.barcode_rep}* > {output.merged_fastq}
+        	zcat {input.barcode_rep}/* > {output.merged_fastq}
 		else
-        	cat {input.barcode_rep}* > {output.merged_fastq}
+        	cat {input.barcode_rep}/* > {output.merged_fastq}
 		fi
 		gzip -c {output.merged_fastq} > {output.merged_fastq_compressed}
 		"""
@@ -304,7 +349,10 @@ rule split_reference:
 	output:
 		ref_rep=directory(resultpath+"00_SUPDATA/REFSEQ/")
 	shell:
-		"script/split_reference.py {input} {output} "
+		"""
+		mkdir -p {output} 
+		script/split_reference.py {input} {output} 
+		"""
 
 rule make_db:
 	message:
@@ -358,7 +406,7 @@ rule count_refmatching:
 		if [ -s {input.R_data} ] 
 		then
 			Rscript script/count_ref.R {input.R_data} \
-				{input.ref_table}R_table_analysis.csv \
+				{input.ref_table}/R_table_analysis.csv \
 				{wildcards.barcode} \
 				{output.ref_count} \
 				{output.blastn_result}

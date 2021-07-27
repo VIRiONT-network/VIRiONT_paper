@@ -7,6 +7,8 @@ import string
 
 ref_fasta_file=sys.argv[1]
 output_dir=sys.argv[2]
+if (output_dir[-1] != "/"):
+	output_dir=output_dir+"/"
 
 def read_fasta(file):   
     fastas={}

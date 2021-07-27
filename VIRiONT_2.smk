@@ -47,19 +47,14 @@ except:
 sample_list=list(multiinf_table['barcode'])
 reference_list=list(multiinf_table['reference'])
 assoc_sample_ref_number=len(sample_list)
+BARCODE = list(dict.fromkeys(sample_list))
+
 
 
 #get database name
 filename=os.path.basename(refpath)
 list_split=filename.split(".")
 database_name=list_split[0]
-
-#get all barcodes in a list after demultiplexing
-barcode_list = glob.glob(datapath+"barcode*")
-BARCODE=[]
-for BC in barcode_list:
-	barcode=str(os.path.basename(BC))
-	BARCODE.append(barcode)
 
 ######## INTERMEDIATE FILES ########
 #produce read list
@@ -235,7 +230,7 @@ rule read_correction:
     shell:
         """
         #compute reference size
-        size_ref=`tail -n 1 {input.split_ref_path}{wildcards.reference}.fasta | wc -c`
+        size_ref=`tail -n 1 {input.split_ref_path}/{wildcards.reference}.fasta | wc -c`
         #launch CANU in correction mode only
         canu -correct \
             -nanopore {input.merged_filtered} \
@@ -245,7 +240,8 @@ rule read_correction:
             maxMemory={max_mem} \
             maxThreads={threads} \
             correctedErrorRate={error_rate} \
-            maxInputCoverage={coverage_correction}
+            maxInputCoverage={coverage_correction} \
+            corMinCoverage=0
         #process final modifications
         seqtk seq -F "?" {params.correction_rep}{wildcards.reference}.correctedReads.fasta.gz > {output.corrected_filtered}
         """
@@ -262,7 +258,7 @@ rule filtered_fastq_alignemnt:
         "env/minimap2.yaml"              
     shell:
         """
-        minimap2 -ax splice {input.split_ref_path}{wildcards.reference}.fasta {input.merged_filtered} | samtools sort > {output.spliced_bam}
+        minimap2 -ax splice {input.split_ref_path}/{wildcards.reference}.fasta {input.merged_filtered} | samtools sort > {output.spliced_bam}
         samtools index {output.spliced_bam}  
         """
 
@@ -308,7 +304,7 @@ rule variant_calling:
         "env/samtools.yaml"  
     shell:
         """
-        samtools mpileup -d {mpileup_depth} -Q {mpileup_basequal} -f {input.split_ref_path}{wildcards.reference}.fasta {input.sorted_bam}  > {output}
+        samtools mpileup -d {mpileup_depth} -Q {mpileup_basequal} -f {input.split_ref_path}/{wildcards.reference}.fasta {input.sorted_bam}  > {output}
         """   
 
 rule generate_consensus:
