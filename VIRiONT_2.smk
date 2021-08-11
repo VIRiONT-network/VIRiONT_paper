@@ -215,9 +215,10 @@ rule read_correction:
     message:
         "correct the {wildcards.barcode}-{wildcards.reference} reads for the ONT error rate using CANU."
     input:
-        merged_filtered = rules.extract_matching_read.output.merged_filtered ,
+        merged_filtered = rules.extract_matching_read.output.merged_filtered_compressed ,
         split_ref_path = resultpath+"00_SUPDATA/REFSEQ/" ,
     output:
+        corrected_filtered_uncompressed = temp(resultpath +"05_REFILTERED_FASTQ/{barcode}/{reference}_filtered_corrected.fastq"), 
         corrected_filtered = resultpath +"05_REFILTERED_FASTQ/{barcode}/{reference}_filtered_corrected.fastq.gz" 
     conda:
         "env/canu.yaml"
@@ -243,7 +244,8 @@ rule read_correction:
             maxInputCoverage={coverage_correction} \
             corMinCoverage=0
         #process final modifications
-        seqtk seq -F "?" {params.correction_rep}{wildcards.reference}.correctedReads.fasta.gz > {output.corrected_filtered}
+        seqtk seq -F "?" {params.correction_rep}{wildcards.reference}.correctedReads.fasta.gz > {output.corrected_filtered_uncompressed}
+        gzip -c {output.corrected_filtered_uncompressed} > {output.corrected_filtered}
         """
 
 rule filtered_fastq_alignemnt:
@@ -412,12 +414,12 @@ rule read_metric_MI:
     message:
         "Extract read sequence from '{wildcards.reference}' matched reads in the {wildcards.barcode} for metric computation."
     input:
-        bestmatched_fastq = rules.extract_matching_read.output.merged_filtered if (do_correction==False) else rules.read_correction.output.corrected_filtered ,
+        bestmatched_fastq = rules.extract_matching_read.output.merged_filtered_compressed if (do_correction==False) else rules.read_correction.output.corrected_filtered ,
     output:
         bestmatched_read = temp(resultpath+"10_QC_ANALYSIS/{barcode}/{reference}_filterseq.txt"),
         bestmatched_count = temp(resultpath+"10_QC_ANALYSIS/{barcode}/{reference}_filterseqcount.csv"),
     run:
-        shell("awk '(NR%4==2)' {input.bestmatched_fastq} > {output.bestmatched_read}")
+        shell("zcat {input.bestmatched_fastq} | awk '(NR%4==2)'  > {output.bestmatched_read}")
         ######
         BMlengthfile=open(output.bestmatched_count,'w')
         BMRfile=open(output.bestmatched_read,'r')
