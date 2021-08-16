@@ -9,9 +9,9 @@
 #######################    GENERAL PARAMETERS    ###############################
 ################################################################################
 #fastq location / Define path where the "barcode*" rep are stored
-data_loc : /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/DATA_HDV_TEST/
+data_loc : DATASET_HDV/
 #output location / Define path where storing analysis results 
-result_loc : /srv/nfs/ngs-stockage/NGS_Virologie/HadrienR/CARO_PIPELINE/RESULT_HDV_TEST/
+result_loc : VIRiONT_HDV422_correction_refNoPrimers/
 #custom reference file to use /  Path to fastafile containing reference sequences for blast
 ref_loc : ref/HDV_subtype_V2_noPrimers.fasta
 #core number / Define number of threads to use for the analysis
@@ -39,9 +39,9 @@ tail_trim : 23
 #########################    READ CORRECTION   #0################################
 #################################################################################
 #enable or not read correction. Can be high time/ressource consuming depending on the following parameters.
-correction : true
+correction : false
 #average coverage of reads on the reference. /!\ This parameter significantly increase computing time if too high!
-cov_correction : 1000
+cov_correction : 100000
 #corrected error rate for ONT. See the readme file for more information
 error_rate : 0.105
 #################################################################################
@@ -59,7 +59,7 @@ basequality : 20
 #######################    CONSENSUS PARAMETERS    ##############################
 #################################################################################
 #minor variant frequency
-Vfreq : 0.50
+Vfreq : 0.05
 #minimun coverage necessary to generate a consensus / N is called if below threshold
 min_cov : 20
 #################################################################################
