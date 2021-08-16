@@ -41,7 +41,7 @@ error_rate=config['error_rate']
 #Read MI results from VIRiONT_MI1.py
 data_multiinf = resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv"
 try:
-    multiinf_table = pd.read_csv(resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv",sep="\t",names=["barcode", "reference", "ratio"])
+    multiinf_table = pd.read_csv(resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv",sep="\t",names=["barcode", "reference","readcount","ratio"])
 except:
     sys.exit("The '04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv' file produced during the blast step is missing. Exiting.")
 sample_list=list(multiinf_table['barcode'])

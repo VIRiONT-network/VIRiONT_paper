@@ -50,6 +50,11 @@ all_data$MI_ratio<-round(as.numeric(all_data$MI_ratio),1)
 
 #subset data
 matchingMI_table<-subset(all_data,MI_ratio>=MI_cutoff)
-matchingMI_table<-matchingMI_table[,c("sample","reference","MI_ratio")]
+matchingMI_table<-matchingMI_table[,c("sample","reference","count","MI_ratio")]
+
+#minimum read number to be processed in the 2nd workflow
+nbread_cutoff<-50
+
+matchingMI_table<-subset(matchingMI_table,count>=nbread_cutoff)
 
 write.table(matchingMI_table,output_table_MI,row.names = F,quote=F,col.names = F,sep="\t")
