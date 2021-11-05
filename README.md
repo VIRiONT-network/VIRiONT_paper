@@ -130,11 +130,16 @@ All parameters are located in the ###### CONFIGURATION ####### section.
 **head_trim** : number of nucleotides to be trimmed at the 5'end (forward primer removal).  
 **tail_trim** : number of nucleotides to be trimmed at the 3'end (reverse primer removal).  
 
-**READ CORRECTION**  
+**READ CORRECTION:**  
 If you want to correct your read, please check the CANU documentation for more information: => [documentation](https://canu.readthedocs.io/)
 **correction** : enable read correction. TRUE/FALSE to enable/disable correction.   
 **cov_correction** : average coverage for read correction. Reads above this coverage will be removed from the analysis. Corresponding to the CANU's "maxInputCoverage" parameter.  
 **error_rate** : CANU parameter for ONT read correction. Corresponding to the CANU's "correctedErrorRate" parameter.     
+
+**PRIMER TRIMMING:**
+Check these parameters if you are using a multiple amplicon approach, such as Artic SARS-CoV-2 protocol.
+**do_amplicon_removal** : enable or not primer trimming if you have a bed based on the used reference. TRUE/FALSE to enable/disable amplicon clipping.
+**bedfilepath** : path to the bed file with primer coordinates.
 
 **VARIANT CALLING PARAMETERS:**  
 **max_depth** : maximum depth for samtools mpileup (sub-sampling of the total amount of reads is possible for a faster analysis).  
