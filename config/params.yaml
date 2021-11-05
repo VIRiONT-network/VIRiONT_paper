@@ -9,30 +9,30 @@
 #######################    GENERAL PARAMETERS    ###############################
 ################################################################################
 #fastq location / Define path where the "barcode*" rep are stored
-data_loc : DATASET_HDV/
+data_loc : DATA_SARSCOV2-MIDNIGHT/
 #output location / Define path where storing analysis results 
-result_loc : VIRiONT_HDV422_correction_refNoPrimers/
+result_loc : VIRiONT_SARSCOV2-MIDNIGHT_results
 #custom reference file to use /  Path to fastafile containing reference sequences for blast
-ref_loc : ref/HDV_subtype_V2_noPrimers.fasta
+ref_loc : data/ref/SARS-CoV-2_reference.fasta
 #core number / Define number of threads to use for the analysis
-thread_number : 32
+thread_number : 12
 #memory cost in mb / Define number of threads to use for the analysis
-mem_cost : 600000
+mem_cost : 300000
 #################################################################################
 
 #################################################################################
 ##################    TRIMMING/FILTERING PARAMETERS    ##########################
 #################################################################################
 #min length for read filtering
-min_length : 500
+min_length : 1000
 #max length for read filtering
-max_length : 2000
+max_length : 1300
 #average read quality for filtering
 min_qual_ONT : 0
 #Remove N 5' nucleotides from each filtered read 
-head_trim : 23
+head_trim : 0
 #Remove N 3' nucleotides from each filtered read 
-tail_trim : 23
+tail_trim : 0
 #################################################################################
 
 #################################################################################
@@ -47,19 +47,28 @@ error_rate : 0.105
 #################################################################################
 
 #################################################################################
+##########################    PRIMER TRIMMING   #################################
+#################################################################################
+#enable or not primer trimming if you have a bed based on the used reference
+do_amplicon_removal : true
+#path to the bed file with primer coordinates
+bedfilepath : data/amplicon/midnight_primers.bed
+#################################################################################
+
+#################################################################################
 ####################    VARIANT CALLING PARAMETERS    ###########################
 #################################################################################
 #maximum depth for samtools mpileup
 max_depth : 10000000
 #base quality cutoff for samtools mpileup
-basequality : 20
+basequality : 0
 #################################################################################
 
 #################################################################################
 #######################    CONSENSUS PARAMETERS    ##############################
 #################################################################################
 #minor variant frequency
-Vfreq : 0.05
+Vfreq : 0.50
 #minimun coverage necessary to generate a consensus / N is called if below threshold
 min_cov : 20
 #################################################################################

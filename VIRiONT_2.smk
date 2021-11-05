@@ -38,6 +38,10 @@ do_correction=config['correction']
 coverage_correction=int(config['cov_correction'])
 error_rate=config['error_rate']
 
+#Amplicon removal
+do_amplicon_removal=config['do_amplicon_removal']
+bedfile_path=config['bedfilepath']
+
 #Read MI results from VIRiONT_MI1.py
 data_multiinf = resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv"
 try:
@@ -262,12 +266,26 @@ rule filtered_fastq_alignemnt:
         minimap2 -ax splice {input.split_ref_path}/{wildcards.reference}.fasta {input.merged_filtered} | samtools sort > {output.spliced_bam}
         samtools index {output.spliced_bam}  
         """
-
+rule remove_amplicon:
+    message:
+        "Remove amplicon bam if bed supplied."
+    input:
+        spliced_bam = rules.filtered_fastq_alignemnt.output.spliced_bam,
+        bedfile = bedfile_path
+    output:
+        ampliconclip_bam = resultpath+"06_PRECONSENSUS/BAM/{barcode}/{reference}_ampliconclip_sorted.bam" 
+    conda:
+        "env/samtools.yaml"  
+    shell:
+        """
+        samtools ampliconclip --both-ends -b {input.bedfile} {input.spliced_bam} | samtools sort > {output.ampliconclip_bam}
+        samtools index {output.ampliconclip_bam}
+        """    
 rule compute_coverage:
     message:
         "Compute read coverage from {wildcards.barcode} for the '{wildcards.reference}' reference using bedtools."
     input:
-        sorted_bam = rules.filtered_fastq_alignemnt.output.spliced_bam
+        sorted_bam = rules.filtered_fastq_alignemnt.output.spliced_bam if (do_amplicon_removal==False) else rules.remove_amplicon.output.ampliconclip_bam
     output:
         coverage = resultpath+"12_COVERAGE/{barcode}/{reference}.cov" 
     conda:
@@ -298,7 +316,7 @@ rule variant_calling:
         "Count nucleotidic base repartition from {wildcards.barcode} aligned reads for each position of the '{wildcards.reference}' reference  using samtools."
     input:
         split_ref_path = resultpath+"00_SUPDATA/REFSEQ/"  ,
-        sorted_bam = rules.filtered_fastq_alignemnt.output.spliced_bam ,
+        sorted_bam = rules.filtered_fastq_alignemnt.output.spliced_bam if (do_amplicon_removal==False) else rules.remove_amplicon.output.ampliconclip_bam ,
     output:
         vcf = resultpath+"06_PRECONSENSUS/VCF/{barcode}/{reference}_sammpileup.vcf"
     conda:
