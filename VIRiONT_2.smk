@@ -241,8 +241,7 @@ rule read_correction:
             maxMemory={max_mem} \
             maxThreads={threads} \
             correctedErrorRate={error_rate} \
-            maxInputCoverage={coverage_correction} \
-            corMinCoverage=0
+            maxInputCoverage={coverage_correction} 
         #process final modifications
         seqtk seq -F "?" {params.correction_rep}{wildcards.reference}.correctedReads.fasta.gz > {output.corrected_filtered_uncompressed}
         gzip -c {output.corrected_filtered_uncompressed} > {output.corrected_filtered}
