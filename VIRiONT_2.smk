@@ -194,6 +194,8 @@ rule getfastqlist:
         blastn_result = resultpath+"04_BLASTN_ANALYSIS/{barcode}_blastnR.tsv"
     output:
         fastqlist = temp(resultpath +"READLIST/{barcode}/{reference}_readlist.txt" )
+    conda:
+        "env/Renv.yaml" 
     shell:
         """
         Rscript script/get_read_list.R {input.blastn_result} {wildcards.reference} {output.fastqlist}
