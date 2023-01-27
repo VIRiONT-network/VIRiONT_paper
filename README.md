@@ -24,7 +24,7 @@ For each barcode, you can find herein the global workflow:
 (ii) This latter sequence is used as the sample’s own mapping reference for a second realignment of the reads that enables to generate to the final consensus sequence. Of note, consensus sequence can be called at a tunable minimum depth set up per default at 20X (usually applied among Nanopore community).  
 **Step5** => generation of a phylognenetic tree including consensus and reference sequences of the custom dataset using a Maximum-likelihood statistical method (1000 bootstrap replicates) after a MUSCLE-based-alignment.  
 
-![image info](./documents/workflow.tif)
+![image info](./documents/Figure_Workflow_VIRiONT.png)
 
 # Requirements & Tools
 
