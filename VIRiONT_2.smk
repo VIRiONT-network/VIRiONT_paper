@@ -53,6 +53,8 @@ reference_list=list(multiinf_table['reference'])
 assoc_sample_ref_number=len(sample_list)
 BARCODE = list(dict.fromkeys(sample_list))
 
+if (len(BARCODE)==0):
+    sys.exit("The '04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv' file is empty. Any data available for analysis. Exiting.")
 
 
 #get database name
