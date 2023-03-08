@@ -1,5 +1,12 @@
 # VIRiONT (VIRal in-house Oxford Nanopore Technologies sequencing) Pipeline
 
+# UPDATE (2023-03-08)
+
+This repository will not receveive any further update. See the [VIRiONT](https://github.com/VIRiONT-network/VIRiONT) repository instead. 
+The following repository was dedicated to the work below:
+>Charre C, Regue H, Dény P, Josset L, Chemin I, Zoulim F, Scholtes C. Improved Hepatitis Delta Virus genome characterization by single molecule full-length genome sequencing combined with VIRiONT pipeline. J Med Virol. 2023 Mar 6.  
+>[https://doi.org/10.1002/jmv.28634](https://doi.org/10.1002/jmv.28634)
+
 # Quick presentation
 
 VIRiONT pipeline is designed to analyze data from amplicon-approach-based Nanopore sequencing. It was primarily developed to analyze data from hepatitis B virus (HBV) complete genome long read sequencing after an amplification step of the full genome in one fragment (about 3.2kb in lenght). It was secondarily extended to hepatitis delta virus (HDV, about 1.7kb in lenght). However, this pipeline can be adapted for other viruses and pathogens as well. You just need to upload a custom reference dataset specific to the pathogen and adapted to the amplicon design used prior your ONT sequencing.  
