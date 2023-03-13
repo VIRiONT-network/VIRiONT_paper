@@ -1,8 +1,6 @@
 # VIRiONT (VIRal in-house Oxford Nanopore Technologies sequencing) Pipeline
 
 # UPDATE (2023-03-08)
-
-This repository will not receveive any further update. See the [VIRiONT](https://github.com/VIRiONT-network/VIRiONT) repository instead. 
 The following repository was dedicated to the work below:
 >Charre C, Regue H, Dény P, Josset L, Chemin I, Zoulim F, Scholtes C. Improved Hepatitis Delta Virus genome characterization by single molecule full-length genome sequencing combined with VIRiONT pipeline. J Med Virol. 2023 Mar 6.  
 >[https://doi.org/10.1002/jmv.28634](https://doi.org/10.1002/jmv.28634)
@@ -181,5 +179,4 @@ All VIRiONT pipeline outputs are stored in the choosen path (see above) indicate
 **10_QC_ANALYSIS** : a folder, containing useful read metrics after the different steps of filtering.  
 **11_PHYLOGENETIC_TREE** : a folder, containing phylogenetic tree of consensus sequences with associated matched reference sequences.  
 **12_COVERAGE** : a folder, containing coverage table from each bam file generated using bedtools as well as coverage plots for each sample compiled into one pdf file.  
-**13_MUTATION_SCREENING** : Optionnal, this folder contains a table with mutations of interest for each sample.   
 
