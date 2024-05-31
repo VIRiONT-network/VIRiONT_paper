@@ -10,6 +10,17 @@ analysis_table<-read.csv2(argv[2])
 samplename<-as.character(argv[3])
 output_ref_count<-as.character(argv[4])
 output_blastR<-as.character(argv[5])
+bitscore_min<-as.numeric(argv[6])
+
+blastn_data<-subset(blastn_data,SCORE>=bitscore_min)
+
+
+if(nrow(blastn_data)==0){
+    write.table(blastn_data,output_ref_count,col.names = F,row.names = F,quote = F,sep="\t")
+    f <- file(output_blastR, open="w")
+    truncate(f)
+    quit(save = "no")
+}
 
 #get the bitscore max for each read
 MAX_SCORE<-aggregate(blastn_data$SCORE,by=list(blastn_data$READ), function(x) max(x))

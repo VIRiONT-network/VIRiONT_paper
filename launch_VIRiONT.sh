@@ -9,13 +9,19 @@ max_thread=`grep "thread_number"  config/params.yaml | cut -d":" --fields=2 | tr
 mem_cost=`grep "mem_cost"  config/params.yaml | cut -d":" --fields=2 | tr -d ' '`
 #echo $mem_cost
 
-snakemake -s VIRiONT_1.smk -p  \
-    --use-conda \
+snakemake -s VIRiONT_1test.smk -p  \
+    --cores $max_thread \
+    --resources mem_mb=$mem_cost 
+
+snakemake -s VIRiONT_2test.smk -p  \
     --cores $max_thread \
     --resources mem_mb=$mem_cost
+#
 
-snakemake -s VIRiONT_2.smk -p  \
-    --use-conda \
-    --cores $max_thread \
-    --resources mem_mb=$mem_cost
-
+#save
+#snakemake -s VIRiONT_2test.smk -p  \
+#    --use-conda \
+#    --cores $max_thread \
+#    --resources mem_mb=$mem_cost \
+#    --conda-frontend conda
+#

@@ -74,6 +74,13 @@ If you are interested in this feature, results should be published soon.
 
 # Quick using steps
 
+
+**UDPATE:** The pipeline can now be launch using a single singularity container.
+Simply use the following command:
+```
+singularity exec singularity/VIRiONT.sif ./launch_VIRiONT.sh
+```
+
 **Step 1 :** Get and install Anaconda herein if needed.  
 More informations about conda here => https://www.anaconda.com/products/individual <=  
 

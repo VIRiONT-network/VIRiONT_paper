@@ -9,30 +9,32 @@
 #######################    GENERAL PARAMETERS    ###############################
 ################################################################################
 #fastq location / Define path where the "barcode*" rep are stored
-data_loc : DATA_SARSCOV2-MIDNIGHT/
+data_loc : fastq/ONT_run_240430_VHDR0/
 #output location / Define path where storing analysis results 
-result_loc : VIRiONT_SARSCOV2-MIDNIGHT_results
+result_loc : results_VHD_240430_R0/
 #custom reference file to use /  Path to fastafile containing reference sequences for blast
-ref_loc : data/ref/SARS-CoV-2_reference.fasta
+ref_loc : data/ref/Ref_HDV_subtype_R0.fasta
 #core number / Define number of threads to use for the analysis
-thread_number : 12
+thread_number : 16
 #memory cost in mb / Define number of threads to use for the analysis
-mem_cost : 300000
+mem_cost : 200000
 #################################################################################
 
 #################################################################################
 ##################    TRIMMING/FILTERING PARAMETERS    ##########################
 #################################################################################
 #min length for read filtering
-min_length : 1000
+min_length : 300
 #max length for read filtering
-max_length : 1300
+max_length : 800
 #average read quality for filtering
-min_qual_ONT : 0
+min_qual_ONT : 12
 #Remove N 5' nucleotides from each filtered read 
 head_trim : 0
 #Remove N 3' nucleotides from each filtered read 
 tail_trim : 0
+#Remove read blasting with a bitscore above the threshold
+bitscore_min : 0
 #################################################################################
 
 #################################################################################
@@ -50,7 +52,7 @@ error_rate : 0.105
 ##########################    PRIMER TRIMMING   #################################
 #################################################################################
 #enable or not primer trimming if you have a bed based on the used reference
-do_amplicon_removal : true
+do_amplicon_removal : false
 #path to the bed file with primer coordinates
 bedfilepath : data/amplicon/midnight_primers.bed
 #################################################################################
@@ -90,5 +92,5 @@ path_table : mutation_table/
 #variant frequency under the threshold will be removed from filtered table. Should be between 0 and 100
 freq_min : 8
 #If using reference without primers, correct position in the mutation table. Could be Positive or negative.
-window_pos: -21
+window_pos: 0
 #################################################################################

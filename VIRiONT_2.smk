@@ -195,6 +195,8 @@ rule getfastqlist:
         blastn_result = resultpath+"04_BLASTN_ANALYSIS/{barcode}_blastnR.tsv"
     output:
         fastqlist = temp(resultpath +"READLIST/{barcode}/{reference}_readlist.txt" )
+    #conda:
+    #    "env/Renv.yaml"  
     shell:
         """
         Rscript script/get_read_list.R {input.blastn_result} {wildcards.reference} {output.fastqlist}
@@ -209,8 +211,8 @@ rule extract_matching_read:
 	output:
 		merged_filtered = temp(resultpath +"05_REFILTERED_FASTQ/{barcode}/{reference}_filtered.fastq"),
 		merged_filtered_compressed = resultpath +"05_REFILTERED_FASTQ/{barcode}/{reference}_filtered.fastq.gz" 
-	conda:
-		"env/seqkit.yaml"          
+	#conda:
+	#	"env/seqkit.yaml"          
 	shell:
 		"""
 		seqkit grep --pattern-file {input.read_list} {input.nonhuman_fastq} > {output.merged_filtered}
@@ -226,8 +228,8 @@ rule read_correction:
     output:
         corrected_filtered_uncompressed = temp(resultpath +"05_REFILTERED_FASTQ/{barcode}/{reference}_filtered_corrected.fastq"), 
         corrected_filtered = resultpath +"05_REFILTERED_FASTQ/{barcode}/{reference}_filtered_corrected.fastq.gz" 
-    conda:
-        "env/canu.yaml"
+    #conda:
+    #    "env/canu.yaml"
     threads: 
         max_threads
     resources: 
@@ -261,8 +263,8 @@ rule filtered_fastq_alignemnt:
         split_ref_path = resultpath+"00_SUPDATA/REFSEQ/" ,
     output:
         spliced_bam = resultpath+"06_PRECONSENSUS/BAM/{barcode}/{reference}_sorted.bam" 
-    conda:
-        "env/minimap2.yaml"              
+    #conda:
+    #    "env/minimap2.yaml"              
     shell:
         """
         minimap2 -ax splice {input.split_ref_path}/{wildcards.reference}.fasta {input.merged_filtered} | samtools sort > {output.spliced_bam}
@@ -276,8 +278,8 @@ rule remove_amplicon:
         bedfile = bedfile_path
     output:
         ampliconclip_bam = resultpath+"06_PRECONSENSUS/BAM/{barcode}/{reference}_ampliconclip_sorted.bam" 
-    conda:
-        "env/samtools.yaml"  
+    #conda:
+    #    "env/samtools.yaml"  
     shell:
         """
         samtools ampliconclip --both-ends -b {input.bedfile} {input.spliced_bam} | samtools sort > {output.ampliconclip_bam}
@@ -290,8 +292,8 @@ rule compute_coverage:
         sorted_bam = rules.filtered_fastq_alignemnt.output.spliced_bam if (do_amplicon_removal==False) else rules.remove_amplicon.output.ampliconclip_bam
     output:
         coverage = resultpath+"12_COVERAGE/{barcode}/{reference}.cov" 
-    conda:
-        "env/bedtools.yaml"          
+    #conda:
+    #    "env/bedtools.yaml"          
     shell:
         """
         bedtools genomecov -ibam {input} -d -split | sed 's/$/\t{wildcards.barcode}\tMINION/' > {output.coverage} 
@@ -305,8 +307,8 @@ rule plot_coverage:
     output:
         cov_sum = resultpath+"12_COVERAGE/cov_sum.cov" ,
         cov_plot = resultpath+"12_COVERAGE/cov_plot.pdf"
-    conda:
-        "env/Renv.yaml" 
+    #conda:
+    #    "env/Renv.yaml" 
     shell:
         """
         cat {input.cov} > {output.cov_sum}
@@ -321,8 +323,8 @@ rule variant_calling:
         sorted_bam = rules.filtered_fastq_alignemnt.output.spliced_bam if (do_amplicon_removal==False) else rules.remove_amplicon.output.ampliconclip_bam ,
     output:
         vcf = resultpath+"06_PRECONSENSUS/VCF/{barcode}/{reference}_sammpileup.vcf"
-    conda:
-        "env/samtools.yaml"  
+    #conda:
+    #    "env/samtools.yaml"  
     shell:
         """
         samtools mpileup -d {mpileup_depth} -Q {mpileup_basequal} -f {input.split_ref_path}/{wildcards.reference}.fasta {input.sorted_bam}  > {output}
@@ -351,8 +353,8 @@ rule precons_alignemnt:
         merged_filtered = rules.extract_matching_read.output.merged_filtered_compressed if (do_correction==False) else rules.read_correction.output.corrected_filtered ,
     output:
         consbam = resultpath +"07_BAM/{barcode}/{reference}_sorted.bam"
-    conda:
-        "env/minimap2.yaml"              
+    #conda:
+    #    "env/minimap2.yaml"              
     shell:
         """
         minimap2 -ax splice {input.fasta_cons} {input.merged_filtered} | samtools sort > {output.consbam}
@@ -367,8 +369,8 @@ rule variant_calling_precons:
         consbam = rules.precons_alignemnt.output.consbam ,
     output:
         vcf = resultpath+"08_VCF/{barcode}/{reference}_sammpileup.vcf"
-    conda:
-        "env/samtools.yaml"  
+    #conda:
+    #    "env/samtools.yaml"  
     shell:
         """
         samtools mpileup -d {mpileup_depth} -Q {mpileup_basequal} -f {input.fasta_cons} {input.consbam}  > {output.vcf}
@@ -465,6 +467,8 @@ rule concat_datametric:
         shell("cat {input.refilteredcount} > {output.allrefilter}")
 
 rule compute_metric:
+    message:
+        "Produce final metric table."
     input:
         allraw = rules.concat_datametric.output.allraw,
         alldehost = rules.concat_datametric.output.alldehost,
@@ -472,8 +476,8 @@ rule compute_metric:
         allrefilter = rules.concat_datametric.output.allrefilter,
     output:
         full_summ_table = resultpath+"10_QC_ANALYSIS/METRIC_summary_table.csv",
-    conda:
-        "env/Renv.yaml"
+    #conda:
+    #    "env/Renv.yaml"
     shell:
         """
         Rscript script/compute_metrics.R {input.allraw} {input.alldehost} \
@@ -531,10 +535,10 @@ rule sequenceAlign:
         allseq = rules.prepareSEQ.output.allseq
     output:
         align_seq = temp(resultpath+"11_PHYLOGENETIC_TREE/align_seq.fasta")
-    conda:
-        "env/muscle.yaml"
+    #conda:
+    #    "env/muscle.yaml"
     shell:
-        "muscle -in {input} -out {output} -maxiters 2"
+        "muscle -align {input} -output {output}"
 
 rule buildTree:
     message:
@@ -543,8 +547,8 @@ rule buildTree:
         align_seq = rules.sequenceAlign.output.align_seq,
     output:
         iqtree = expand(resultpath+"11_PHYLOGENETIC_TREE/IQtree_analysis"+".{ext}", ext=["contree","bionj","ckp.gz","iqtree","log","mldist","splits.nex","treefile"])
-    conda:
-        "env/iqtree.yaml"
+    #conda:
+    #    "env/iqtree.yaml"
     shell:
         "iqtree -s {input.align_seq} -m K80 -B 1000 -T AUTO --prefix {resultpath}11_PHYLOGENETIC_TREE/IQtree_analysis "
 
@@ -556,8 +560,8 @@ rule plotTree:
         NWK_data = resultpath+"11_PHYLOGENETIC_TREE/IQtree_analysis.treefile"
     output:
         tree_pdf = resultpath+"11_PHYLOGENETIC_TREE/RADIAL_tree.pdf"
-    conda:
-        "env/ETE3.yaml"
+    #conda:
+    #    "env/ETE3.yaml"
     shell:
         "python3 script/makeTREE.py {input.NWK_data} {output.tree_pdf} "
 
@@ -572,6 +576,8 @@ rule copy_vcf_result:
         "cp {input.vcf} {output.vcf}"
 
 rule search_HBV_mutation:
+    message:
+        "Search mutation when a whole genome HBV reference is provided."
     input:
         vcf = rules.copy_vcf_result.output.vcf,
         #table_mut = mutation_table_path + "mutation_{reference}.csv"
@@ -596,8 +602,8 @@ rule search_HBV_mutation:
         result_DPS2_F = resultpath+"13_MUTATION_SCREENING/{barcode}/filtered/{barcode}_{reference}_DomainePreS2.csv",
         result_DHBx_F = resultpath+"13_MUTATION_SCREENING/{barcode}/filtered/{barcode}_{reference}_DomaineHBx.csv",
         result_C_F = resultpath+"13_MUTATION_SCREENING/{barcode}/filtered/{barcode}_{reference}_Core.csv",
-    conda:
-        "env/Renv.yaml"
+    #conda:
+    #    "env/Renv.yaml"
     shell:
         """
         Rscript script/search_mutation.R {input.vcf} {params.table_mut} {min_freq} {window} \

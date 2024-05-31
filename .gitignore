@@ -12,3 +12,7 @@ DATA*
 RESULTS*
 VIRiONT*
 !env/VIRiONT.yaml
+results*/
+fastq/*
+!singularity/VIRiONT.def
+!singularity/VIRiONT.yml

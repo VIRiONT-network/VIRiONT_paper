@@ -16,6 +16,7 @@ trim_min=config['min_length']
 trim_max=config['max_length']
 trim_head=config['head_trim']
 trim_tail=config['tail_trim']
+bitscore=config['bitscore_min']
 quality_read=config['min_qual_ONT']
 MI_cutoff=config['MI_cutoff']
 mincov_cons=config['min_cov']
@@ -154,7 +155,7 @@ if (mutation_research=="TRUE"):
 
 #NanoFilt Command construction with input parameters
 if (trim_min>0):
-	lengmin="--length "+str(trim_min)
+	lengmin="--minlength "+str(trim_min)
 else:
 	lengmin=""
 if (trim_max>0):
@@ -259,8 +260,8 @@ rule index_hg19:
 		hg19 = rules.get_hg19.output.hg19_ref
 	output:
 		hg19_index = "ref/hg19.mmi"
-	conda:
-		"env/minimap2.yaml"
+	#conda:
+	#	"env/minimap2.yaml"
 	shell:
 		"minimap2 -d {output} {input}"
 
@@ -272,8 +273,8 @@ rule hg19_dehosting:
 		ref_file= rules.index_hg19.output.hg19_index
 	output:
 		human_bam = temp(resultpath+"02_DEHOSTING/{barcode}_human.bam")
-	conda:
-		"env/minimap2.yaml" 
+	#conda:
+	#	"env/minimap2.yaml" 
 	threads: 4
 	shell:
 		"""
@@ -287,8 +288,8 @@ rule nonhuman_read_extract:
 		human_bam = rules.hg19_dehosting.output.human_bam
 	output:
 		nonhuman_bam = temp(resultpath+"02_DEHOSTING/{barcode}_meta.bam")
-	conda:
-		"env/samtools.yaml" 
+	#conda:
+	#	"env/samtools.yaml" 
 	shell: 
 		"samtools view -b -f 4 {input.human_bam} > {output.nonhuman_bam} "   
 
@@ -300,8 +301,8 @@ rule converting_bam_fastq:
 	output:
 		nonhuman_fastq = temp(resultpath + '02_DEHOSTING/{barcode}_meta.fastq'),
 		nonhuman_fastq_compressed = resultpath + '02_DEHOSTING/{barcode}_meta.fastq.gz',
-	conda:
-		"env/bedtools.yaml"
+	#conda:
+	#	"env/bedtools.yaml"
 	shell:
 		"""
 		bedtools bamtofastq  -i {input.nonhuman_bam} -fq {output.nonhuman_fastq} 
@@ -310,18 +311,18 @@ rule converting_bam_fastq:
 
 rule trimming_fastq:
 	message:
-		"Filtering and trimming viral reads from {wildcards.barcode} using NanoFilt with input parameters."
+		"Filtering and trimming viral reads from {wildcards.barcode} using chopper with input parameters."
 	input:
 		meta_fastq = rules.converting_bam_fastq.output.nonhuman_fastq_compressed
 	output:
 		trimmed_fastq = temp(resultpath+"03_FILTERED_TRIMMED/{barcode}_filtered_trimmed.fastq"),
 		trimmed_fastq_compressed = resultpath+"03_FILTERED_TRIMMED/{barcode}_filtered_trimmed.fastq.gz"
 
-	conda:
-		"env/nanofilt.yaml"
+	#conda:
+	#	"env/chopper.yaml"
 	shell:
 		"""
-		gunzip -c {input.meta_fastq} | NanoFilt {lengmin} {lengmax} {head} {tail} {qfiltering}  > {output.trimmed_fastq} 
+		gunzip -c {input.meta_fastq} | chopper {lengmin} {lengmax} {head} {tail} {qfiltering}  > {output.trimmed_fastq} 
 		gzip -c {output.trimmed_fastq} > {output.trimmed_fastq_compressed} 
 		"""
 
@@ -333,8 +334,8 @@ rule converting_fastq_fasta:
 	output:
 		converted_fastq = temp(resultpath+"FASTA/{barcode}.fasta" ),
 		converted_fastq_temp = temp(resultpath+"FASTA/{barcode}_temp.fasta" )
-	conda:
-		"env/seqtk.yaml"        
+	#conda:
+	#	"env/seqtk.yaml"        
 	shell:
 		"""
 		seqtk seq -A {input.nonhuman_fastq} > {output.converted_fastq}
@@ -363,8 +364,8 @@ rule make_db:
 		database = expand(resultpath+"00_SUPDATA/DB/"+database_name+".{ext}", ext=["nhr", "nin", "nsq"])
 	params:
 		database_path = resultpath+"00_SUPDATA/DB/"+database_name
-	conda:
-		"env/blast.yaml"                  
+	#conda:
+	#	"env/blast.yaml"          
 	shell:
 		"""
 		makeblastdb -in {input.ref_fasta_file} -out {params.database_path} -input_type fasta -dbtype nucl
@@ -381,8 +382,8 @@ rule blastn_ref:
 	threads: 4
 	params:
 		database_path = resultpath+"00_SUPDATA/DB/"+database_name    
-	conda:
-		"env/blast.yaml"               
+	#conda:
+	#	"env/blast.yaml"               
 	shell:
 		"""
 		blastn -db {params.database_path} -query {input.fasta_file} \
@@ -399,8 +400,8 @@ rule count_refmatching:
 	output:
 		ref_count = temp(resultpath+"04_BLASTN_ANALYSIS/{barcode}_refcount.tsv"),
 		blastn_result = resultpath+"04_BLASTN_ANALYSIS/{barcode}_blastnR.tsv"
-	conda:
-		"env/Renv.yaml"     
+	#conda:
+	#	"env/Renv.yaml"     
 	shell:
 		"""
 		if [ -s {input.R_data} ] 
@@ -409,7 +410,8 @@ rule count_refmatching:
 				{input.ref_table}/R_table_analysis.csv \
 				{wildcards.barcode} \
 				{output.ref_count} \
-				{output.blastn_result}
+				{output.blastn_result} \
+				{bitscore}
 		else
 			touch {output.ref_count}
 			echo "Empty: Any blast results." > {output.blastn_result}
@@ -425,8 +427,8 @@ rule MI_analysis:
 		merged_data = temp(resultpath+"04_BLASTN_ANALYSIS/ALL_refcount.tsv"),
 		plot_pdf = resultpath+"04_BLASTN_ANALYSIS/read_repartition.pdf",
 		summ_multiinf = resultpath+"04_BLASTN_ANALYSIS/SUMMARY_Multi_Infection.tsv"
-	conda:
-		"env/Renv.yaml"   
+	#conda:
+	#	"env/Renv.yaml"   
 	shell:
 		"""
 		cat {input.count_ref_data} > {output.merged_data}
