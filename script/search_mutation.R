@@ -29,25 +29,15 @@ file_output_DPS2_F<-argv[18]
 file_output_DHBx_F<-argv[19]
 file_output_C_F<-argv[20]
 
-#Parametres
-#vcf_input<-"MUTATIONS/BC08_GTA_PRECONS.txt"
-#tablemut_input<-"MUTATIONS/POS_MUT/mutation_GTA.csv"
-#file_output_PC<-"MUTATIONS/BC08_GTA_VF50_PreCore.csv"
-#file_output_BCP<-"MUTATIONS/BC08_GTA_VF50_BCP.csv"
-#file_output_DS<-"MUTATIONS/BC08_GTA_VF50_DomaineS.csv"
-#file_output_RT<-"MUTATIONS/BC08_GTA_VF50_DomaineRT.csv"
-#file_output_DPS1<-"MUTATIONS/BC08_GTA_VF50_DomainePreS1.csv"
-#file_output_DPS2<-"MUTATIONS/BC08_GTA_VF50_DomainePreS2.csv"
-#file_output_DHBx<-"MUTATIONS/BC08_GTA_VF50_DomaineHBx.csv"
-#file_output_C<-"MUTATIONS/BC08_GTA_VF50_Core.csv"
-
 #Functions
 getAA<-function(codon){
   #codon<-"AC"
   if (str_detect(codon,"N")==T) {
     AA<-"ININT"
   } else if (nchar(codon)==3) {
-    AA<-GENETIC_CODE[[codon]] 
+    #coder un truc pour quand les codons n'existent pas?
+    list_codon<-names(GENETIC_CODE)
+    if(codon %in% list_codon) AA<-GENETIC_CODE[[codon]] else AA<-"ININT"
   } else AA<-"ININT"
   return(AA)
 }
@@ -64,8 +54,11 @@ searchMUT_CODON<-function(vcf,mut_table,mutation){
   #move window if no primer in reference
   mut_table$REF_POS<-mut_table$REF_POS+window_pos
   table_vcf_mut<-merge(vcf,mut_table,by="REF_POS")
-  
+  if(nrow(table_vcf_mut)==0) {
+      return(table_vcf_mut)
+  } else {
   CODON_REF<-aggregate(table_vcf_mut$REF,list(table_vcf_mut$base_status,table_vcf_mut$NUM_CODON),paste,collapse="")
+
   colnames(CODON_REF)<-c("base_status","NUM_CODON","CODON_REF")
   table_vcf_mut<-merge(table_vcf_mut,CODON_REF,by=c("NUM_CODON","base_status"))
   
@@ -84,12 +77,14 @@ searchMUT_CODON<-function(vcf,mut_table,mutation){
   table_vcf_mut<-table_vcf_mut[with(table_vcf_mut, order(REF_POS,POS_TYPE)),]
   return(table_vcf_mut)
 }
+}
 searchMUT_NT<-function(vcf,mut_table,mutation){
   mut_table<-subset(table_mut,Region==mutation)
   mut_table<-mut_table[,c("Position_EcoR1","NUC1_P3")]
   #move window if no primer in reference
   mut_table$NUC1_P3<-mut_table$NUC1_P3+window_pos
   table_vcf_mut<-merge(vcf,mut_table,by.x="REF_POS",by.y="NUC1_P3")
+
   table_vcf_mut$Mutation_name<-paste0(table_vcf_mut$REF,as.character(table_vcf_mut$Position_EcoR1),table_vcf_mut$base)
   table_vcf_mut<-table_vcf_mut[,c("REFERENCE","REF_POS","Position_EcoR1","REF","total_count",
                                   "base_status","base","count","Mutation_name","freq")]
@@ -112,7 +107,6 @@ table_vcf<-pivot_longer(data=table_vcf,
 
 table_vcf$base<-str_sub(table_vcf$base_count,start = 1,end = 1)
 table_vcf$count<-as.numeric(str_sub(table_vcf$base_count,start = 3))
-
 total_count<-aggregate(table_vcf$count,by=list(table_vcf$REF_POS),sum)
 colnames(total_count)<-c("REF_POS","total_count")
 
@@ -132,6 +126,27 @@ if(grepl("F",reference)) table<-"mutation_GTF.csv"
 if(grepl("G",reference)) table<-"mutation_GTG.csv"
 if(grepl("H",reference)) table<-"mutation_GTH.csv"
 if(grepl("I",reference)) table<-"mutation_GTI.csv"
+
+if(grepl("GTG|GTH",table)==TRUE){
+  write.table("Mutation table not available for this genotype",file_output_PC)
+  write.table("Mutation table not available for this genotype",file_output_BCP)
+  write.table("Mutation table not available for this genotype",file_output_DS)
+  write.table("Mutation table not available for this genotype",file_output_RT)
+  write.table("Mutation table not available for this genotype",file_output_DPS1)
+  write.table("Mutation table not available for this genotype",file_output_DPS2)
+  write.table("Mutation table not available for this genotype",file_output_DHBx)
+  write.table("Mutation table not available for this genotype",file_output_C)
+  write.table("Mutation table not available for this genotype",file_output_PC_F)
+  write.table("Mutation table not available for this genotype",file_output_BCP_F)
+  write.table("Mutation table not available for this genotype",file_output_DS_F)
+  write.table("Mutation table not available for this genotype",file_output_RT_F)
+  write.table("Mutation table not available for this genotype",file_output_DPS1_F)
+  write.table("Mutation table not available for this genotype",file_output_DPS2_F)
+  write.table("Mutation table not available for this genotype",file_output_DHBx_F)
+  write.table("Mutation table not available for this genotype",file_output_C_F)
+  
+  quit(save = "no")
+}
 
 #read mutation table
 table_mut<-read.csv2(paste0(tablemut_input,table))

@@ -9,24 +9,24 @@
 #######################    GENERAL PARAMETERS    ###############################
 ################################################################################
 #fastq location / Define path where the "barcode*" rep are stored
-data_loc : fastq/ONT_run_240430_VHDR0/
+data_loc : fastq/ONT_run_240130_WG/
 #output location / Define path where storing analysis results 
-result_loc : results_VHD_240430_R0/
+result_loc : results_VHB_240130_WG/
 #custom reference file to use /  Path to fastafile containing reference sequences for blast
-ref_loc : data/ref/Ref_HDV_subtype_R0.fasta
+ref_loc : data/ref/HBV_subtype.fasta
 #core number / Define number of threads to use for the analysis
-thread_number : 16
+thread_number : 32
 #memory cost in mb / Define number of threads to use for the analysis
-mem_cost : 200000
+mem_cost : 400000
 #################################################################################
 
 #################################################################################
 ##################    TRIMMING/FILTERING PARAMETERS    ##########################
 #################################################################################
 #min length for read filtering
-min_length : 300
+min_length : 1000
 #max length for read filtering
-max_length : 800
+max_length : 5000
 #average read quality for filtering
 min_qual_ONT : 12
 #Remove N 5' nucleotides from each filtered read 
@@ -70,7 +70,7 @@ basequality : 0
 #######################    CONSENSUS PARAMETERS    ##############################
 #################################################################################
 #minor variant frequency
-Vfreq : 0.50
+Vfreq : 0.08
 #minimun coverage necessary to generate a consensus / N is called if below threshold
 min_cov : 20
 #################################################################################
